@@ -12,6 +12,16 @@ WinSparkle requires an Ed25519 key pair to verify appcast update signatures. The
 
 ---
 
+## Clarifications
+
+### Session 2026-03-22
+
+- Q: Where is `winsparkle-sign` obtained? → A: Bundled in WinSparkle's GitHub release zip alongside `WinSparkle.dll`; CI must extract it from that archive.
+- Q: Where is `appcast.xml` published? → A: GitHub Pages only (stable URL at `https://<org>.github.io/airbeam/appcast.xml`); NOT attached to individual GitHub Releases.
+- Q: How is the public key passed to WinSparkle at startup? → A: Compile-time embed; CMake reads `sparkle_pubkey.txt` and injects the key as a preprocessor definition or generated header so no file dependency exists at runtime.
+
+---
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Auto-Update Detected and Verified (Priority: P1)
@@ -75,12 +85,12 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 
 ### Functional Requirements
 
-- **FR-001**: An Ed25519 key pair MUST be generated using `winsparkle-sign --generate-keys` (or equivalent tool that produces WinSparkle-compatible keys).
+- **FR-001**: An Ed25519 key pair MUST be generated using `winsparkle-sign --generate-keys`. The `winsparkle-sign` tool is distributed inside the WinSparkle GitHub release zip alongside `WinSparkle.dll`; CI must extract it from that archive before invoking it.
 - **FR-002**: The Ed25519 public key MUST be stored in `resources/sparkle_pubkey.txt` as a Base64-encoded string (WinSparkle format).
 - **FR-003**: The Ed25519 private key MUST NEVER be committed to the repository; it MUST be stored only as a GitHub Actions secret (`SPARKLE_PRIVATE_KEY`).
-- **FR-004**: `AppController.cpp` (or wherever `WinSparkle_set_dsa_pub_pem` / `WinSparkle_set_ed_dsa_pub_key` is called) MUST pass the public key from `resources/sparkle_pubkey.txt` at startup.
+- **FR-004**: The Ed25519 public key from `resources/sparkle_pubkey.txt` MUST be embedded at compile time (CMake reads the file and injects it as a preprocessor definition or generated header). `AppController.cpp` MUST pass this compile-time constant to `WinSparkle_set_ed_dsa_pub_key` at startup. No file read occurs at runtime.
 - **FR-005**: The release workflow MUST include a step that calls `winsparkle-sign <installer> --ed-key $SPARKLE_PRIVATE_KEY` and captures the resulting Base64 signature.
-- **FR-006**: The appcast generation step MUST embed the captured signature as `sparkle:edSignature` on the `<enclosure>` element.
+- **FR-006**: The appcast generation step MUST embed the captured signature as `sparkle:edSignature` on the `<enclosure>` element, and the resulting `appcast.xml` MUST be committed/pushed to the GitHub Pages branch so it is served from the stable `https://<org>.github.io/airbeam/appcast.xml` URL.
 - **FR-007**: The signing step MUST be guarded: `if: secrets.SPARKLE_PRIVATE_KEY != ''`.
 - **FR-008**: When the signing step is skipped, a `::warning::` annotation MUST be emitted so the release author is aware the update is unsigned.
 - **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST be updated from `TODO_ORG` to the real GitHub Pages URL before the first release. The repo's final GitHub location (org vs personal account) is TBD; this is a pre-release prerequisite documented in the release checklist.
@@ -90,8 +100,8 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 
 - **`resources/sparkle_pubkey.txt`**: Base64-encoded Ed25519 public key; committed to repo; embedded in the binary at build time.
 - **`SPARKLE_PRIVATE_KEY`** (GitHub secret): Ed25519 private key; used only in the release signing step; never stored in source.
-- **`appcast.xml`**: WinSparkle-compatible appcast; must contain `sparkle:edSignature` on the installer `<enclosure>` element.
-- **`winsparkle-sign`**: CLI tool (part of WinSparkle distribution) used for key generation and signing.
+- **`appcast.xml`**: WinSparkle-compatible appcast; must contain `sparkle:edSignature` on the installer `<enclosure>` element. Published exclusively to GitHub Pages (stable URL); not attached to individual GitHub Releases.
+- **`winsparkle-sign`**: CLI tool bundled inside the WinSparkle GitHub release zip (alongside `WinSparkle.dll`); used for key generation, artifact signing, and signature verification. CI must download the WinSparkle release archive and extract this tool before use.
 
 ---
 
