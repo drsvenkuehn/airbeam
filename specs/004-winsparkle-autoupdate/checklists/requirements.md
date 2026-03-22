@@ -31,7 +31,7 @@
 
 ## Notes
 
-- FR-009: `TODO_ORG` deliberately left as placeholder — final GitHub org/user TBD; update `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` before first release. Clear TODO comment added to CMakeLists.txt.
+- FR-009: Resolved — appcast URL is `https://drsvenkuehn.github.io/airbeam/appcast.xml`; repo stays at `drsvenkuehn/airbeam`. GitHub Pages must be enabled before first release.
 - FR-007 guard uses `if: secrets.SPARKLE_PRIVATE_KEY != ''` (step-level) — plan phase must use job-level env pattern per lesson from spec 002 FR-008
 - US3 (key rotation) is P3 — deferred documentation; P1/P2 stories are the implementation MVP
 - `winsparkle-sign` tool availability must be confirmed in plan phase (may require download/install step)

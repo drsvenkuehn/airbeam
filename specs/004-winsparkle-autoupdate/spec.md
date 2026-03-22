@@ -19,6 +19,7 @@ WinSparkle requires an Ed25519 key pair to verify appcast update signatures. The
 - Q: Where is `winsparkle-sign` obtained? → A: Bundled in WinSparkle's GitHub release zip alongside `WinSparkle.dll`; CI must extract it from that archive.
 - Q: Where is `appcast.xml` published? → A: GitHub Pages only (stable URL at `https://<org>.github.io/airbeam/appcast.xml`); NOT attached to individual GitHub Releases.
 - Q: How is the public key passed to WinSparkle at startup? → A: Compile-time embed; CMake reads `sparkle_pubkey.txt` and injects the key as a preprocessor definition or generated header so no file dependency exists at runtime.
+- Q: What is the final GitHub repo location for the appcast URL? → A: Repo stays at `drsvenkuehn/airbeam`; appcast URL is `https://drsvenkuehn.github.io/airbeam/appcast.xml`.
 
 ---
 
@@ -93,7 +94,7 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 - **FR-006**: The appcast generation step MUST embed the captured signature as `sparkle:edSignature` on the `<enclosure>` element, and the resulting `appcast.xml` MUST be committed/pushed to the GitHub Pages branch so it is served from the stable `https://<org>.github.io/airbeam/appcast.xml` URL.
 - **FR-007**: The signing step MUST be guarded: `if: secrets.SPARKLE_PRIVATE_KEY != ''`.
 - **FR-008**: When the signing step is skipped, a `::warning::` annotation MUST be emitted so the release author is aware the update is unsigned.
-- **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST be updated from `TODO_ORG` to the real GitHub Pages URL before the first release. The repo's final GitHub location (org vs personal account) is TBD; this is a pre-release prerequisite documented in the release checklist.
+- **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST be set to `https://drsvenkuehn.github.io/airbeam/appcast.xml`. GitHub Pages must be enabled on the `drsvenkuehn/airbeam` repository before the first release.
 - **FR-010**: Key generation instructions MUST be documented in `docs/release-process.md` (or equivalent) for key rotation procedures.
 
 ### Key Entities

@@ -27,11 +27,8 @@ if(MSVC)
 endif()
 
 # ── Appcast URL ───────────────────────────────────────────────────────────────
-# TODO(APPCAST_URL): Replace placeholder with real GitHub Pages URL before first release.
-# Format: https://<org-or-user>.github.io/airbeam/appcast.xml
-# GitHub Pages must be enabled on the repo and appcast.xml published there.
 set(AIRBEAM_APPCAST_URL
-    "https://TODO_ORG.github.io/airbeam/appcast.xml"
+    "https://drsvenkuehn.github.io/airbeam/appcast.xml"
     CACHE STRING "WinSparkle appcast XML URL")
 
 # ── FetchContent dependencies ───────────────────────────────────────────────
