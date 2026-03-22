@@ -22,6 +22,34 @@
       }
     },
     {
+      "name": "base-ci",
+      "hidden": true,
+      "inherits": "base",
+      "environment": {
+        "PATH": null,
+        "LIB": null,
+        "INCLUDE": null
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_LINKER": "link.exe",
+        "CMAKE_RC_COMPILER": "rc.exe",
+        "CMAKE_MT": "mt.exe"
+      }
+    },
+    {
+      "name": "msvc-x64-debug-ci",
+      "displayName": "MSVC x64 Debug (CI)",
+      "inherits": "base-ci",
+      "binaryDir": "${sourceDir}/build/msvc-x64-debug-ci",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "/Od /Zi /RTC1",
+        "AIRBEAM_USE_RESAMPLER": "ON"
+      }
+    },
+    {
       "name": "msvc-x64-debug",
       "displayName": "MSVC x64 Debug",
       "inherits": "base",
@@ -45,6 +73,10 @@
   ],
   "buildPresets": [
     {
+      "name": "msvc-x64-debug-ci",
+      "configurePreset": "msvc-x64-debug-ci"
+    },
+    {
       "name": "msvc-x64-debug",
       "configurePreset": "msvc-x64-debug"
     },
@@ -54,6 +86,18 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "msvc-x64-debug-ci",
+      "configurePreset": "msvc-x64-debug-ci",
+      "filter": {
+        "include": {
+          "label": "unit"
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
     {
       "name": "msvc-x64-debug",
       "configurePreset": "msvc-x64-debug",

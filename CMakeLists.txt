@@ -38,7 +38,7 @@ include(FetchContent)
 FetchContent_Declare(
     alac
     GIT_REPOSITORY https://github.com/macosforge/alac.git
-    GIT_TAG        master
+    GIT_TAG        c38887c5c5e64a4b31108733bd79ca9b2496d987  # pinned 2016-05-11 (last commit on master; no tags exist on this repo — mirror: https://github.com/macosforge/alac)
     GIT_SHALLOW    TRUE
 )
 

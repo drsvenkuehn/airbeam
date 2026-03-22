@@ -15,6 +15,10 @@ jobs:
     name: Build, Sign & Release
     runs-on: windows-latest
 
+    env:
+      CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}
+      CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}
+
     steps:
       # ── Step 1: Checkout ──────────────────────────────────────────────────
       - name: Checkout repository
@@ -51,11 +55,13 @@ jobs:
         shell: pwsh
 
       # ── Step 6: OV code-sign installer + exe ─────────────────────────────
+      - name: Warn — code signing skipped
+        if: env.CODESIGN_PFX == ''
+        shell: pwsh
+        run: Write-Host "::warning::Code signing skipped — CODESIGN_PFX secret not set; installer will be unsigned"
+
       - name: Sign binaries (OV certificate)
         if: env.CODESIGN_PFX != ''
-        env:
-          CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}
-          CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}
         shell: pwsh
         run: |
           $pfxPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
@@ -129,11 +135,3 @@ jobs:
           git add appcast.xml
           git commit -m "chore: update appcast.xml for ${{ github.ref_name }}"
           git push origin gh-pages
-
-      # ── Step 10: Deploy gh-pages ──────────────────────────────────────────
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs   # TODO: adjust to appcast output dir
-          keep_files: true

@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test (Windows x64 Debug)
+    runs-on: windows-latest
+
+    steps:
+      # ── Step 1: Checkout ──────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up MSVC environment ───────────────────────────────────
+      - name: Set up MSVC environment (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # ── Step 3: Restore CMake build cache ────────────────────────────────
+      - name: Restore CMake build cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: build/msvc-x64-debug-ci
+          key: ${{ runner.os }}-cmake-${{ github.ref }}-${{ hashFiles('CMakeLists.txt','CMakePresets.json') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-${{ github.ref }}-
+
+      # ── Step 4: Configure ─────────────────────────────────────────────────
+      - name: Configure CMake (CI Debug preset)
+        run: cmake --preset msvc-x64-debug-ci
+
+      # ── Step 5: Build ─────────────────────────────────────────────────────
+      - name: Build AirBeam (Debug)
+        run: cmake --build --preset msvc-x64-debug-ci
+
+      # ── Step 6: Test ──────────────────────────────────────────────────────
+      - name: Run unit tests
+        run: ctest --preset msvc-x64-debug-ci
+
+      # ── Step 7: Save cache (before cleanup, only on cache miss) ──────────
+      - name: Save CMake build cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/msvc-x64-debug-ci
+          key: ${{ runner.os }}-cmake-${{ github.ref }}-${{ hashFiles('CMakeLists.txt','CMakePresets.json') }}
+
+      # ── Step 8: Cleanup (always, after cache save) ────────────────────────
+      - name: Clean up build directory
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Recurse -Force build/msvc-x64-debug-ci -ErrorAction SilentlyContinue

@@ -17,7 +17,7 @@
 **Purpose**: Confirm current file structure matches the plan before making surgical edits.
 Plan was authored from static analysis; verify line numbers and structure are still accurate.
 
-- [ ] T001 Read `CMakeLists.txt` lines 38–45, `CMakePresets.json` (full), and `.github/workflows/release.yml` lines 50–75 and 130–145 to confirm ALAC `GIT_TAG` value, presence of `base` preset with absolute MSVC paths, codesign step position, and Step 10 `publish_dir` TODO comment all match the plan
+- [x] T001 Read `CMakeLists.txt` lines 38–45, `CMakePresets.json` (full), and `.github/workflows/release.yml` lines 50–75 and 130–145 to confirm ALAC `GIT_TAG` value, presence of `base` preset with absolute MSVC paths, codesign step position, and Step 10 `publish_dir` TODO comment all match the plan
 
 ---
 
@@ -29,9 +29,9 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **⚠️ CRITICAL**: `ci.yml` (Phase 4 / US2) cannot be written until T002, T003, and T010 are complete — preset names and constitution alignment must both be confirmed first.
 
-- [ ] T002 [P] Add a `hidden: true` preset named `base-ci` to `CMakePresets.json` that inherits `"base"` and overrides: `CMAKE_C_COMPILER` → `"cl.exe"`, `CMAKE_CXX_COMPILER` → `"cl.exe"`, `CMAKE_LINKER` → `"link.exe"`, `CMAKE_RC_COMPILER` → `"rc.exe"`, `CMAKE_MT` → `"mt.exe"`; remove the `PATH`, `LIB`, and `INCLUDE` `environment` entries inherited from `base` by setting them to `null` (environment provided by `ilammy/msvc-dev-cmd` in the workflow)
-- [ ] T003 Add three presets to `CMakePresets.json` that inherit `"base-ci"`: (1) configure preset `"msvc-x64-debug-ci"` with `binaryDir: "${sourceDir}/build/msvc-x64-debug-ci"` and `CMAKE_BUILD_TYPE: Debug`; (2) build preset `"msvc-x64-debug-ci"` referencing the configure preset; (3) test preset `"msvc-x64-debug-ci"` referencing the configure preset with `filter: { label: { include: "unit" } }` and `output: { outputOnFailure: true }`
-- [ ] T010 [P] Amend `§CI/CD & Release Pipeline` in `.specify/memory/constitution.md` to replace the prohibition on PR/push triggers with the new policy: debug-only CI runs on non-`main` branch pushes and PRs targeting `main` are permitted; release builds remain tag-triggered via `release.yml`; all CI jobs must clean up build output on `always()` — **this task MUST be completed before T005 (ci.yml creation)** to maintain constitutional compliance
+- [x] T002 [P] Add a `hidden: true` preset named `base-ci` to `CMakePresets.json` that inherits `"base"` and overrides: `CMAKE_C_COMPILER` → `"cl.exe"`, `CMAKE_CXX_COMPILER` → `"cl.exe"`, `CMAKE_LINKER` → `"link.exe"`, `CMAKE_RC_COMPILER` → `"rc.exe"`, `CMAKE_MT` → `"mt.exe"`; remove the `PATH`, `LIB`, and `INCLUDE` `environment` entries inherited from `base` by setting them to `null` (environment provided by `ilammy/msvc-dev-cmd` in the workflow)
+- [x] T003 Add three presets to `CMakePresets.json` that inherit `"base-ci"`: (1) configure preset `"msvc-x64-debug-ci"` with `binaryDir: "${sourceDir}/build/msvc-x64-debug-ci"` and `CMAKE_BUILD_TYPE: Debug`; (2) build preset `"msvc-x64-debug-ci"` referencing the configure preset; (3) test preset `"msvc-x64-debug-ci"` referencing the configure preset with `filter: { label: { include: "unit" } }` and `output: { outputOnFailure: true }`
+- [x] T010 [P] Amend `§CI/CD & Release Pipeline` in `.specify/memory/constitution.md` to replace the prohibition on PR/push triggers with the new policy: debug-only CI runs on non-`main` branch pushes and PRs targeting `main` are permitted; release builds remain tag-triggered via `release.yml`; all CI jobs must clean up build output on `always()` — **this task MUST be completed before T005 (ci.yml creation)** to maintain constitutional compliance
 
 **Checkpoint**: `cmake --list-presets` shows `msvc-x64-debug-ci` configure, build, and test presets. Constitution amended. Foundation ready for ci.yml.
 
@@ -43,7 +43,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Independent Test**: Delete FetchContent cache (`build/` dir), run `cmake --preset msvc-x64-debug`, then run `git -C build/msvc-x64-debug/_deps/alac-src rev-parse HEAD` and verify it equals `c38887c5c5e64a4b31108733bd79ca9b2496d987`.
 
-- [ ] T004 [P] [US1] In `CMakeLists.txt` line 41: replace `GIT_TAG master` with `GIT_TAG c38887c5c5e64a4b31108733bd79ca9b2496d987` and add an inline comment on the same or next line: `# pinned 2016-05-11 (last commit on master; no tags exist on this repo — mirror: https://github.com/macosforge/alac)`
+- [x] T004 [P] [US1] In `CMakeLists.txt` line 41: replace `GIT_TAG master` with `GIT_TAG c38887c5c5e64a4b31108733bd79ca9b2496d987` and add an inline comment on the same or next line: `# pinned 2016-05-11 (last commit on master; no tags exist on this repo — mirror: https://github.com/macosforge/alac)`
 
 **Checkpoint**: `CMakeLists.txt` no longer references `master`. User Story 1 is complete and independently testable.
 
@@ -57,7 +57,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Depends on**: Phase 2 (T002 + T003 + T010) — preset names `msvc-x64-debug-ci` must be committed and constitution amendment must be in place before ci.yml is created.
 
-- [ ] T005 [US2] Create `.github/workflows/ci.yml` with the following complete structure:
+- [x] T005 [US2] Create `.github/workflows/ci.yml` with the following complete structure:
   - **Triggers**: `on: push` with `branches-ignore: [main]`; `on: pull_request` with `branches: [main]`
   - **Job id**: `build-and-test` on `windows-latest`
   - **Steps in order**:
@@ -81,7 +81,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Independent Test**: Inspect `release.yml` — Step 10 (`peaceiris/actions-gh-pages@v4`) is absent. Step 9 (the git-based gh-pages push) is the sole appcast deploy mechanism, and a `docs/` directory does NOT need to exist.
 
-- [ ] T006 [P] [US3] In `.github/workflows/release.yml`: (1) remove the entire Step 10 block (`peaceiris/actions-gh-pages@v4` with `publish_dir: ./docs # TODO: adjust to appcast output dir`) — Step 9 already handles `gh-pages` via direct `git push`; Step 10 is dead scaffolding that would overwrite the appcast from a nonexistent directory; (2) read `CMakeLists.txt` lines 29–31 to find `AIRBEAM_APPCAST_URL` and verify that Step 9's `git checkout gh-pages` commit path deploys `appcast.xml` to the root of `gh-pages` (or subdirectory) that matches the URL path component — document alignment or flag a mismatch (FR-007)
+- [x] T006 [P] [US3] In `.github/workflows/release.yml`: (1) remove the entire Step 10 block (`peaceiris/actions-gh-pages@v4` with `publish_dir: ./docs # TODO: adjust to appcast output dir`) — Step 9 already handles `gh-pages` via direct `git push`; Step 10 is dead scaffolding that would overwrite the appcast from a nonexistent directory; (2) read `CMakeLists.txt` lines 29–31 to find `AIRBEAM_APPCAST_URL` and verify that Step 9's `git checkout gh-pages` commit path deploys `appcast.xml` to the root of `gh-pages` (or subdirectory) that matches the URL path component — document alignment or flag a mismatch (FR-007)
 
 **Checkpoint**: `release.yml` contains no `peaceiris/actions-gh-pages` reference. User Story 3 is complete.
 
@@ -95,8 +95,8 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Sequential after T006**: Both T007 and T008 modify `release.yml`; apply them after T006 to avoid conflicts.
 
-- [ ] T007 [US4] In `.github/workflows/release.yml`: move `CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}` and `CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}` from the step-level `env:` block inside the signing step to the **job-level `env:`** block (if no job-level env block exists, create one); the existing `if: env.CODESIGN_PFX != ''` condition on the signing step will now evaluate correctly from the job environment
-- [ ] T008 [US4] In `.github/workflows/release.yml`: insert a new step immediately **before** the codesign step with `name: Warn — code signing skipped`, `if: env.CODESIGN_PFX == ''`, and `run: Write-Host "::warning::Code signing skipped — CODESIGN_PFX secret not set; installer will be unsigned"` so the release author sees an annotation when signing is bypassed
+- [x] T007 [US4] In `.github/workflows/release.yml`: move `CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}` and `CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}` from the step-level `env:` block inside the signing step to the **job-level `env:`** block (if no job-level env block exists, create one); the existing `if: env.CODESIGN_PFX != ''` condition on the signing step will now evaluate correctly from the job environment
+- [x] T008 [US4] In `.github/workflows/release.yml`: insert a new step immediately **before** the codesign step with `name: Warn — code signing skipped`, `if: env.CODESIGN_PFX == ''`, and `run: Write-Host "::warning::Code signing skipped — CODESIGN_PFX secret not set; installer will be unsigned"` so the release author sees an annotation when signing is bypassed
 
 **Checkpoint**: `release.yml` job-level env contains codesign secrets. Signing step guard evaluates from job env. Warning annotation step present. User Story 4 is complete.
 
@@ -106,7 +106,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Purpose**: One-time post-merge operation — branch protection must be applied after the CI workflow is live on GitHub.
 
-- [ ] T009 Configure branch protection on `main` via `gh` CLI (run once after the PR for this feature is merged): require status check `build-and-test`, set `strict: true`, set `enforce_admins: true`, set `required_pull_request_reviews: null`, set `restrictions: null` — exact command is in `specs/002-ci-build-hardening/plan.md` §quickstart
+- [x] T009 Configure branch protection on `main` via `gh` CLI (run once after the PR for this feature is merged): require status check `build-and-test`, set `strict: true`, set `enforce_admins: true`, set `required_pull_request_reviews: null`, set `restrictions: null` — exact command is in `specs/002-ci-build-hardening/plan.md` §quickstart
 
 ---
 

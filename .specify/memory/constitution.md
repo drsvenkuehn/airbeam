@@ -191,14 +191,22 @@ Cross-thread communication rules:
 
 ## CI/CD & Release Pipeline
 
-GitHub Actions is used **exclusively for tagged releases**. No CI workflows run on push to
-branches or pull requests — unit testing and verification are a local developer responsibility
-in order to minimise Actions minutes consumption.
+GitHub Actions is used for **tagged releases** and **PR/push CI builds on non-`main` branches**.
+Direct pushes to `main` are blocked by branch protection; all changes arrive via pull request.
+
+**CI workflow** (triggered by `push` to any branch except `main`, and `pull_request` targeting `main`):
+- Builds the `msvc-x64-debug-ci` CMake preset on `windows-latest` (MSVC v143 + Ninja, pre-installed — no install steps)
+- Runs `ctest --preset msvc-x64-debug-ci` (unit tests only, `-L unit`)
+- Uses per-branch CMake build cache (`actions/cache/restore` + `actions/cache/save`); cleans up build output on `always()`
+- Job name MUST be `build-and-test` — this name is the required status-check context for branch protection
+- Minimises Actions minutes: debug preset only, no cross-platform matrix, pre-installed toolchain
+
+**Release workflow** (triggered by Git tag matching `vX.Y.Z`):
+- Builds Release configuration with full optimisations
+- Signs, packages, and publishes installer + portable ZIP
+- Updates and deploys `appcast.xml` to `gh-pages`
 
 **Build matrix**: Windows x86-64 only, MSVC 2022 (v143) via Build Tools for Visual Studio 2022, Ninja generator. No cross-platform CI jobs in scope.
-
-**Trigger rule**: Git tag matching `vX.Y.Z` — triggers the release pipeline below. No other
-GitHub Actions triggers are permitted.
 
 **Developer responsibility (pre-tag, local)**:
 - Developers MUST run the full unit test suite locally and confirm all tests pass before
@@ -292,4 +300,4 @@ principles in this document before merge.
 section validating compliance with all eight principles. Any non-compliance MUST be explicitly
 justified and documented in the plan's Complexity Tracking table.
 
-**Version**: 1.3.1 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-21
+**Version**: 1.4.0 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-22
