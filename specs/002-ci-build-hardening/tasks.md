@@ -55,7 +55,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 **Independent Test**: Open a draft PR against `main`; within ~5 minutes the `build-and-test` check appears on the PR. Introduce a deliberate compile error; confirm the check goes red and blocks merge.
 
-**Depends on**: Phase 2 (T002 + T003) — preset names `msvc-x64-debug-ci` must be committed before ci.yml references them.
+**Depends on**: Phase 2 (T002 + T003 + T010) — preset names `msvc-x64-debug-ci` must be committed and constitution amendment must be in place before ci.yml is created.
 
 - [ ] T005 [US2] Create `.github/workflows/ci.yml` with the following complete structure:
   - **Triggers**: `on: push` with `branches-ignore: [main]`; `on: pull_request` with `branches: [main]`
@@ -167,7 +167,7 @@ T001 (verify)
 2. US1 + US2 → reproducible builds + PR CI (MVP)
 3. US3 → appcast deploy fixed (can merge independently)
 4. US4 → codesign guard fixed (depends on US3 for release.yml sequencing)
-5. Polish → branch protection enforced, constitution updated
+5. Polish → branch protection enforced (T009, post-merge)
 
 ---
 
