@@ -17,7 +17,7 @@ Four hardening changes required before the first public release: (A) pin the ALA
 **Project Type**: CI/CD infrastructure + build configuration
 **Performance Goals**: CI run completes in under 15 minutes including a FetchContent cache warm hit
 **Constraints**: Minimize Actions minutes; debug preset only; no tool install steps; per-branch cache key; cleanup on `always()`
-**Scale/Scope**: 1 new workflow file, 2 modified workflow/cmake files, 1 new hidden preset, branch protection one-time setup
+**Scale/Scope**: 1 new workflow file, 2 modified workflow/cmake files, 1 new hidden preset
 
 ## Constitution Check
 
@@ -100,11 +100,9 @@ CMakePresets.json           MODIFY: add base-ci hidden preset + msvc-x64-debug-c
 - **Rationale**: Step 10 is dead scaffolding. Running it would overwrite `gh-pages` content from an empty directory, corrupting the appcast committed by Step 9.
 - **Alternatives considered**: Change `publish_dir` to some real path — no website content directory exists to publish.
 
-### Decision 5 — Branch Protection
+### ~~Decision 5 — Branch Protection~~
 
-- **Decision**: Document the `gh` CLI invocation in `quickstart.md`. Branch protection is a GitHub API/settings artefact, not a committed file.
-- **Rationale**: Cannot be expressed as repository code; must be applied once post-merge by the maintainer.
-- **Alternatives considered**: Self-configuring workflow with admin permissions — overly complex for a one-time setup step.
+> **Removed** — Branch protection is explicitly out of scope for v1.0. Solo project; direct pushes to `main` are the normal workflow. Re-evaluate if collaborators join.
 
 ---
 
@@ -115,29 +113,18 @@ CMakePresets.json           MODIFY: add base-ci hidden preset + msvc-x64-debug-c
 ```markdown
 # CI/Build Hardening — Quickstart
 
-## 1. After merging, configure branch protection once
-
-gh api repos/{owner}/{repo}/branches/main/protection \
-  --method PUT \
-  --field required_status_checks='{"strict":true,"contexts":["build-and-test"]}' \
-  --field enforce_admins=true \
-  --field required_pull_request_reviews=null \
-  --field restrictions=null
-
-# "build-and-test" must match the job.id in .github/workflows/ci.yml
-
-## 2. Verify ALAC SHA after pinning
+## 1. Verify ALAC SHA after pinning
 
 cmake --preset msvc-x64-debug
 git -C build/msvc-x64-debug/_deps/alac-src rev-parse HEAD
 # Expected: c38887c5c5e64a4b31108733bd79ca9b2496d987
 
-## 3. Test codesign guard
+## 2. Test codesign guard
 
 # Secret set:   signing step runs, installer is Authenticode-signed
 # Secret unset: signing step is skipped, ::warning:: annotation appears in log
 
-## 4. Verify appcast deploy after release tag
+## 3. Verify appcast deploy after release tag
 
 curl https://{org}.github.io/airbeam/appcast.xml | Select-String "sparkle:version"
 ```
@@ -148,7 +135,7 @@ Not applicable — this feature has no data entities. All changes are YAML and C
 
 ### Contracts
 
-Not applicable — no public API or inter-service contract introduced. The CI job name `build-and-test` is the only "contract" and is documented in the branch protection quickstart above.
+Not applicable — no public API or inter-service contract introduced. The CI job name `build-and-test` is documented in the workflow file itself.
 
 ---
 
@@ -173,8 +160,7 @@ Not applicable — no public API or inter-service contract introduced. The CI jo
 - [ ] Add `::warning::` step guarded by `if: env.CODESIGN_PFX == ''`
 - [ ] Remove Step 10 (`peaceiris/actions-gh-pages@v4`)
 
-### E — Branch protection (post-merge, once)
-- [ ] Run `gh` CLI command from quickstart.md
+### ~~E — Branch protection~~ _(removed — out of scope for v1.0)_
 
 ### F — Constitution amendment
 - [ ] Update `§CI/CD & Release Pipeline` in `.specify/memory/constitution.md` to document the new PR/push CI policy

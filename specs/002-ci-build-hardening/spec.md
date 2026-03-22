@@ -138,6 +138,6 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 
 - **SC-001**: `cmake --configure` with a clean FetchContent cache fetches ALAC at exactly the pinned SHA — verified by `git -C <fetchcontent-dir> rev-parse HEAD`.
 - **SC-002**: Every push to a non-`main` branch (and every PR update against `main`) triggers a CI run that completes in under 15 minutes on a `windows-latest` runner.
-- **SC-003**: A PR with a deliberately broken unit test shows a failing required status check blocking merge.
+- **SC-003**: A PR with a deliberately broken unit test shows a failing CI status check on the PR.
 - **SC-004**: A fork with no `CODESIGN_PFX` produces a complete (unsigned) installer artifact without any workflow error exit code.
 - **SC-005**: After a tagged release, `https://<org>.github.io/airbeam/appcast.xml` is reachable and contains the new version within 5 minutes of the workflow completing.

@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.3.1 → 1.3.2  (PATCH — Toolchain: Ninja generator required; VS Build Tools only; full VS IDE prohibited)
+Version change: 1.4.0 → 1.4.1  (PATCH — Branch protection removed from §CI/CD: solo project, direct pushes to main permitted)
 Modified principles: none
 Modified sections:
-  - Platform & Toolchain Constraints — added explicit Ninja generator rule; prohibited "Visual Studio 17 2022" MSBuild generator; clarified Build Tools for Visual Studio 2022 (standalone) is the required toolchain
+  - CI/CD & Release Pipeline — removed "direct pushes blocked by branch protection" sentence; removed "required status-check context" rationale from job name bullet
 Added sections: N/A
 Removed sections: N/A
 Templates reviewed:
@@ -192,13 +192,13 @@ Cross-thread communication rules:
 ## CI/CD & Release Pipeline
 
 GitHub Actions is used for **tagged releases** and **PR/push CI builds on non-`main` branches**.
-Direct pushes to `main` are blocked by branch protection; all changes arrive via pull request.
+Direct pushes to `main` are permitted — this is a solo project and branch protection is explicitly out of scope for v1.0.
 
 **CI workflow** (triggered by `push` to any branch except `main`, and `pull_request` targeting `main`):
 - Builds the `msvc-x64-debug-ci` CMake preset on `windows-latest` (MSVC v143 + Ninja, pre-installed — no install steps)
 - Runs `ctest --preset msvc-x64-debug-ci` (unit tests only, `-L unit`)
 - Uses per-branch CMake build cache (`actions/cache/restore` + `actions/cache/save`); cleans up build output on `always()`
-- Job name MUST be `build-and-test` — this name is the required status-check context for branch protection
+- Job name is `build-and-test`
 - Minimises Actions minutes: debug preset only, no cross-platform matrix, pre-installed toolchain
 
 **Release workflow** (triggered by Git tag matching `vX.Y.Z`):
@@ -300,4 +300,4 @@ principles in this document before merge.
 section validating compliance with all eight principles. Any non-compliance MUST be explicitly
 justified and documented in the plan's Complexity Tracking table.
 
-**Version**: 1.4.0 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-22
+**Version**: 1.4.1 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-22
