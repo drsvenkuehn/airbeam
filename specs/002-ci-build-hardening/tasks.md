@@ -21,17 +21,19 @@ Plan was authored from static analysis; verify line numbers and structure are st
 
 ---
 
-## Phase 2: Foundational — CI-Compatible CMake Presets
+## Phase 2: Foundational — CI-Compatible CMake Presets + Constitution Amendment
 
 **Purpose**: `CMakePresets.json` hardcodes absolute local MSVC paths that do not exist on GitHub runners.
 A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** `ci.yml` can reference them.
+The constitution §CI/CD policy must also be amended **in this same phase** — creating `ci.yml` (Phase 4) while the prohibition is still in effect would leave the repo non-compliant, even temporarily.
 
-**⚠️ CRITICAL**: `ci.yml` (Phase 4 / US2) cannot be written until T002 and T003 are complete — the preset names must be confirmed first.
+**⚠️ CRITICAL**: `ci.yml` (Phase 4 / US2) cannot be written until T002, T003, and T010 are complete — preset names and constitution alignment must both be confirmed first.
 
 - [ ] T002 [P] Add a `hidden: true` preset named `base-ci` to `CMakePresets.json` that inherits `"base"` and overrides: `CMAKE_C_COMPILER` → `"cl.exe"`, `CMAKE_CXX_COMPILER` → `"cl.exe"`, `CMAKE_LINKER` → `"link.exe"`, `CMAKE_RC_COMPILER` → `"rc.exe"`, `CMAKE_MT` → `"mt.exe"`; remove the `PATH`, `LIB`, and `INCLUDE` `environment` entries inherited from `base` by setting them to `null` (environment provided by `ilammy/msvc-dev-cmd` in the workflow)
 - [ ] T003 Add three presets to `CMakePresets.json` that inherit `"base-ci"`: (1) configure preset `"msvc-x64-debug-ci"` with `binaryDir: "${sourceDir}/build/msvc-x64-debug-ci"` and `CMAKE_BUILD_TYPE: Debug`; (2) build preset `"msvc-x64-debug-ci"` referencing the configure preset; (3) test preset `"msvc-x64-debug-ci"` referencing the configure preset with `filter: { label: { include: "unit" } }` and `output: { outputOnFailure: true }`
+- [ ] T010 [P] Amend `§CI/CD & Release Pipeline` in `.specify/memory/constitution.md` to replace the prohibition on PR/push triggers with the new policy: debug-only CI runs on non-`main` branch pushes and PRs targeting `main` are permitted; release builds remain tag-triggered via `release.yml`; all CI jobs must clean up build output on `always()` — **this task MUST be completed before T005 (ci.yml creation)** to maintain constitutional compliance
 
-**Checkpoint**: `cmake --list-presets` shows `msvc-x64-debug-ci` configure, build, and test presets. Foundation ready for ci.yml.
+**Checkpoint**: `cmake --list-presets` shows `msvc-x64-debug-ci` configure, build, and test presets. Constitution amended. Foundation ready for ci.yml.
 
 ---
 
@@ -61,11 +63,13 @@ A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** 
   - **Steps in order**:
     1. `actions/checkout@v4`
     2. `ilammy/msvc-dev-cmd@v1` with `arch: x64`
-    3. `actions/cache@v4` restore with `path: build/msvc-x64-debug-ci` and `key: ${{ runner.os }}-cmake-${{ github.ref }}-${{ hashFiles('CMakeLists.txt','CMakePresets.json') }}`
+    3. `actions/cache/restore@v4` (restore only) with `path: build/msvc-x64-debug-ci`, `key: ${{ runner.os }}-cmake-${{ github.ref }}-${{ hashFiles('CMakeLists.txt','CMakePresets.json') }}`, and `restore-keys: ${{ runner.os }}-cmake-${{ github.ref }}-`; capture `id: cache-restore`
     4. `cmake --preset msvc-x64-debug-ci`
     5. `cmake --build --preset msvc-x64-debug-ci`
-    6. `ctest --preset msvc-x64-debug-ci` (label filter and output-on-failure already set in the test preset)
-    7. Cleanup step with `if: always()` that runs `Remove-Item -Recurse -Force build/msvc-x64-debug-ci -ErrorAction SilentlyContinue`
+    6. `ctest --preset msvc-x64-debug-ci` (label filter and output-on-failure already set in the test preset; label filter is `unit`)
+    7. `actions/cache/save@v4` (explicit save, runs before cleanup) with `path: build/msvc-x64-debug-ci` and same key as step 3; guard with `if: steps.cache-restore.outputs.cache-hit != 'true'` to avoid redundant saves
+    8. Cleanup step with `if: always()` that runs `Remove-Item -Recurse -Force build/msvc-x64-debug-ci -ErrorAction SilentlyContinue`
+  - **FR-010 note**: The signing step in `release.yml` MUST NOT have `continue-on-error: true`; PowerShell propagates `signtool` exit codes natively — verify no suppression exists when editing T007
 
 **Checkpoint**: Pushing to any non-`main` branch triggers the workflow. Unit tests run and results appear as a PR status check.
 
@@ -77,7 +81,7 @@ A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** 
 
 **Independent Test**: Inspect `release.yml` — Step 10 (`peaceiris/actions-gh-pages@v4`) is absent. Step 9 (the git-based gh-pages push) is the sole appcast deploy mechanism, and a `docs/` directory does NOT need to exist.
 
-- [ ] T006 [P] [US3] In `.github/workflows/release.yml`: remove the entire Step 10 block (`peaceiris/actions-gh-pages@v4` with `publish_dir: ./docs # TODO: adjust to appcast output dir`) — Step 9 already handles `gh-pages` via direct `git push`; Step 10 is dead scaffolding that would overwrite the appcast from a nonexistent directory
+- [ ] T006 [P] [US3] In `.github/workflows/release.yml`: (1) remove the entire Step 10 block (`peaceiris/actions-gh-pages@v4` with `publish_dir: ./docs # TODO: adjust to appcast output dir`) — Step 9 already handles `gh-pages` via direct `git push`; Step 10 is dead scaffolding that would overwrite the appcast from a nonexistent directory; (2) read `CMakeLists.txt` lines 29–31 to find `AIRBEAM_APPCAST_URL` and verify that Step 9's `git checkout gh-pages` commit path deploys `appcast.xml` to the root of `gh-pages` (or subdirectory) that matches the URL path component — document alignment or flag a mismatch (FR-007)
 
 **Checkpoint**: `release.yml` contains no `peaceiris/actions-gh-pages` reference. User Story 3 is complete.
 
@@ -100,10 +104,9 @@ A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** 
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-**Purpose**: One-time post-merge operation and documentation that affect all user stories.
+**Purpose**: One-time post-merge operation — branch protection must be applied after the CI workflow is live on GitHub.
 
 - [ ] T009 Configure branch protection on `main` via `gh` CLI (run once after the PR for this feature is merged): require status check `build-and-test`, set `strict: true`, set `enforce_admins: true`, set `required_pull_request_reviews: null`, set `restrictions: null` — exact command is in `specs/002-ci-build-hardening/plan.md` §quickstart
-- [ ] T010 [P] Amend `§CI/CD & Release Pipeline` in `.specify/memory/constitution.md` to replace the prohibition on PR/push triggers with the new policy: debug-only CI runs on non-`main` branch pushes and PRs targeting `main` are permitted; release builds remain tag-triggered via `release.yml`; all CI jobs must clean up build output on `always()`
 
 ---
 
@@ -112,12 +115,12 @@ A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** 
 ### Phase Dependencies
 
 - **Phase 1 (Setup)**: No dependencies — start immediately
-- **Phase 2 (Foundational)**: Depends on Phase 1 verification — **BLOCKS Phase 4 (US2)**
+- **Phase 2 (Foundational)**: Depends on Phase 1 verification — **BLOCKS Phase 4 (US2)**; includes T010 (constitution amendment) which must precede T005
 - **Phase 3 (US1)**: Independent of Phase 2 — can run in parallel with Phase 2
 - **Phase 4 (US2)**: Depends on Phase 2 completion (preset names must exist)
 - **Phase 5 (US3)**: Independent of all other stories — can run in parallel with Phase 3 and 4
 - **Phase 6 (US4)**: Depends on Phase 5 (both modify `release.yml` — apply sequentially)
-- **Phase 7 (Polish)**: T009 depends on Phase 4 being merged and the workflow live on GitHub; T010 can run at any time
+- **Phase 7 (Polish)**: T009 depends on Phase 4 being merged and the workflow live on GitHub; T010 has moved to Phase 2
 
 ### User Story Dependencies
 
@@ -132,17 +135,17 @@ A `base-ci` hidden preset and `msvc-x64-debug-ci` presets must exist **before** 
 T001 (verify)
   │
   ├─► T002 [P] (base-ci preset)         T004 [P] [US1] (pin ALAC SHA)
+  │   T010 [P] (constitution amendment) ← must complete before T005
   │         │
   │       T003 (msvc-x64-debug-ci presets)
   │         │
-  └─────────┴──► T005 [US2] (ci.yml)    T006 [P] [US3] (remove Step 10)
+  └─────────┴──► T005 [US2] (ci.yml)    T006 [P] [US3] (remove Step 10 + FR-007 check)
                                                    │
-                                                 T007 [US4] (move codesign env)
+                                                 T007 [US4] (move codesign env + FR-010 verify)
                                                    │
                                                  T008 [US4] (add warning step)
                                                    │
                                         T009 (branch protection — post-merge)
-                                        T010 [P] (constitution amendment)
 ```
 
 ---
@@ -171,8 +174,9 @@ T001 (verify)
 ## Notes
 
 - No test tasks generated — all changes are YAML/CMake configuration; correctness is verified by running the workflows and CMake itself
-- T002 and T004 can be done in parallel (different files: CMakePresets.json vs CMakeLists.txt)
+- T002, T004, and T010 can be done in parallel (different files: CMakePresets.json, CMakeLists.txt, constitution.md)
 - T005 and T006 can be done in parallel (different files: ci.yml vs release.yml)
+- T010 (constitution amendment) is in Phase 2 and MUST be committed before T005 (ci.yml) — they should land in the same PR
 - T009 (branch protection) requires the CI workflow to be live on GitHub; it cannot be applied before the PR is merged
 - The `base` preset in `CMakePresets.json` MUST NOT be modified — it is the developer local build preset; `base-ci` inherits from it and only overrides what CI needs different
 - ALAC SHA `c38887c5c5e64a4b31108733bd79ca9b2496d987` is the only commit on master; the repo has been frozen since 2016-05-11 — no tags exist
