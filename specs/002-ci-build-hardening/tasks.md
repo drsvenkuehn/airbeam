@@ -102,11 +102,9 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: ~~Polish & Cross-Cutting Concerns~~
 
-**Purpose**: One-time post-merge operation — branch protection must be applied after the CI workflow is live on GitHub.
-
-- [x] T009 Configure branch protection on `main` via `gh` CLI (run once after the PR for this feature is merged): require status check `build-and-test`, set `strict: true`, set `enforce_admins: true`, set `required_pull_request_reviews: null`, set `restrictions: null` — exact command is in `specs/002-ci-build-hardening/plan.md` §quickstart
+> **Removed** — Branch protection (T009) is explicitly out of scope for v1.0. This is a solo project; direct pushes to `main` are the normal workflow. Re-evaluate if collaborators join.
 
 ---
 
@@ -120,7 +118,7 @@ The constitution §CI/CD policy must also be amended **in this same phase** — 
 - **Phase 4 (US2)**: Depends on Phase 2 completion (preset names must exist)
 - **Phase 5 (US3)**: Independent of all other stories — can run in parallel with Phase 3 and 4
 - **Phase 6 (US4)**: Depends on Phase 5 (both modify `release.yml` — apply sequentially)
-- **Phase 7 (Polish)**: T009 depends on Phase 4 being merged and the workflow live on GitHub; T010 has moved to Phase 2
+- **Phase 7 (Polish)**: ~~T009 removed — branch protection is out of scope for v1.0 solo project~~
 
 ### User Story Dependencies
 
@@ -144,9 +142,8 @@ T001 (verify)
                                                  T007 [US4] (move codesign env + FR-010 verify)
                                                    │
                                                  T008 [US4] (add warning step)
-                                                   │
-                                        T009 (branch protection — post-merge)
 ```
+_(T009 removed — branch protection out of scope for v1.0)_
 
 ---
 
@@ -167,7 +164,7 @@ T001 (verify)
 2. US1 + US2 → reproducible builds + PR CI (MVP)
 3. US3 → appcast deploy fixed (can merge independently)
 4. US4 → codesign guard fixed (depends on US3 for release.yml sequencing)
-5. Polish → branch protection enforced (T009, post-merge)
+5. Polish → ~~branch protection enforced (T009, removed — out of scope)~~
 
 ---
 
@@ -177,6 +174,6 @@ T001 (verify)
 - T002, T004, and T010 can be done in parallel (different files: CMakePresets.json, CMakeLists.txt, constitution.md)
 - T005 and T006 can be done in parallel (different files: ci.yml vs release.yml)
 - T010 (constitution amendment) is in Phase 2 and MUST be committed before T005 (ci.yml) — they should land in the same PR
-- T009 (branch protection) requires the CI workflow to be live on GitHub; it cannot be applied before the PR is merged
+- T009 removed — branch protection is out of scope for v1.0 solo project
 - The `base` preset in `CMakePresets.json` MUST NOT be modified — it is the developer local build preset; `base-ci` inherits from it and only overrides what CI needs different
 - ALAC SHA `c38887c5c5e64a4b31108733bd79ca9b2496d987` is the only commit on master; the repo has been frozen since 2016-05-11 — no tags exist

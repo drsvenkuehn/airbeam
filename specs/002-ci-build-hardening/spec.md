@@ -8,10 +8,10 @@
 
 ### Session 2026-03-22
 
-- Q: Does CI trigger on pushes to all branches (including `main`) or only non-`main` branches + PRs targeting `main`? → A: Non-`main` branch pushes + PRs targeting `main` only; direct pushes to `main` are enforced via branch protection (no duplicate CI run).
+- Q: Does CI trigger on pushes to all branches (including `main`) or only non-`main` branches + PRs targeting `main`? → A: Non-`main` branch pushes + PRs targeting `main` only; direct pushes to `main` are permitted (solo project).
 - Q: Does CI need to install prerequisites (CMake/Ninja/MSVC) or use what's pre-installed on the runner? → A: Use pre-installed tools on `windows-latest` (CMake, Ninja, MSVC v143 are already present — no install step). CI jobs MUST clean up after themselves (delete build output and cache entries on completion).
 - Q: What cache scope for the CMake build directory? → A: Per-branch cache key (`${{ github.ref }}`); cache is isolated per branch and auto-evicted when the branch is deleted.
-- Q: Is configuring branch protection rules on `main` in scope for this feature? → A: Yes — the branch protection rule requiring the `ci` status check to pass before merge is in scope and must be configured as part of this feature.
+- Q: Is configuring branch protection rules on `main` in scope for this feature? → A: **No — explicitly out of scope.** Solo project; direct pushes to `main` are the normal workflow. Branch protection adds PR-gate friction with no benefit. Re-evaluate if collaborators join.
 - Q: Should CI build debug only or also release preset? → A: `msvc-x64-debug` only; release builds are covered by the tag-triggered `release.yml` pipeline.
 
 ---
@@ -58,10 +58,10 @@ A contributor opens a pull request; within a few minutes they see a green check 
 **Acceptance Scenarios**:
 
 1. **Given** a push to any non-`main` branch, **When** the push lands on GitHub, **Then** the `ci` workflow starts automatically.
-2. **Given** a pull request opened against `main`, **When** the PR is created or updated, **Then** the `ci` workflow runs and its result is enforced as a required status check via branch protection — merge is blocked until it passes.
+2. **Given** a pull request opened against `main`, **When** the PR is created or updated, **Then** the `ci` workflow runs and its result is visible as a status check (not a required gate — branch protection is out of scope for v1.0).
 3. **Given** a unit-test failure (e.g., a broken `SpscRingBuffer`), **When** CI runs, **Then** the workflow exits with a non-zero code and the PR check is marked failing.
 4. **Given** all tests pass, **When** CI completes, **Then** the workflow exits `0` and the PR check is marked passing.
-5. **Given** a direct push to `main`, **When** it lands, **Then** CI does NOT trigger (branch protection requires PRs; direct pushes are blocked at the repo policy level).
+5. **Given** a direct push to `main`, **When** it lands, **Then** CI does NOT trigger (intentional — direct pushes to main are the normal solo workflow).
 
 ---
 
@@ -112,7 +112,7 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 
 - **FR-001**: `CMakeLists.txt` MUST specify `GIT_TAG` for the ALAC dependency as a full 40-character commit SHA (not a branch name or `master`).
 - **FR-002**: The pinned ALAC commit MUST be documented with a comment indicating the equivalent upstream tag/date.
-- **FR-003**: A new workflow file `.github/workflows/ci.yml` MUST trigger on `push` to all branches **except `main`** and on `pull_request` events targeting `main`. Direct pushes to `main` are gated by branch protection (not a duplicate CI trigger).
+- **FR-003**: A new workflow file `.github/workflows/ci.yml` MUST trigger on `push` to all branches **except `main`** and on `pull_request` events targeting `main`. Direct pushes to `main` are permitted (solo workflow); branch protection is explicitly out of scope.
 - **FR-004**: The CI workflow MUST configure the `msvc-x64-debug-ci` CMake preset only (the CI-specific preset added alongside `base-ci`; not the developer `msvc-x64-debug` preset) and run `ctest --preset msvc-x64-debug-ci`. The `msvc-x64-release` preset is intentionally excluded from CI — it is built by the tag-triggered `release.yml` pipeline.
 - **FR-005**: The CI workflow MUST use a `windows-latest` GitHub-hosted runner. CMake, Ninja, and MSVC v143 are pre-installed — no install step required. The workflow MUST cache the CMake build directory using `actions/cache/restore` and `actions/cache/save` (explicit split) with key `${{ runner.os }}-cmake-${{ github.ref }}-${{ hashFiles('CMakeLists.txt','CMakePresets.json') }}` so caches are isolated per branch, invalidated on CMake file changes, and not poisoned across OS types.
 - **FR-005a**: Every CI job MUST include a cleanup step (runs on `always()`) that deletes the build output directory, ensuring runners are not left with stale artifacts. Cache key eviction relies on GitHub's branch-scoped TTL (7-day / 10 GB platform limit); no active API eviction step is required.
@@ -121,7 +121,7 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 - **FR-008**: The `CODESIGN_PFX` and `CODESIGN_PASSWORD` secrets MUST be declared in the **job-level `env:`** block (not step-level), and the code-signing step MUST be guarded with `if: env.CODESIGN_PFX != ''` so the condition evaluates from the job environment (step-level `env:` is populated after `if:` expressions are evaluated, making a step-level guard always false).
 - **FR-009**: When signing is skipped, the workflow MUST emit a `::warning::` annotation ("Code signing skipped — CODESIGN_PFX secret not set") so the release author is notified.
 - **FR-010**: When signing is present, the step MUST still fail loudly if `signtool` returns non-zero (no silent failure).
-- **FR-011**: Branch protection on `main` MUST be configured (via GitHub repository settings or `gh` CLI) to require the `ci` status check to pass before any PR can be merged. This is part of the deliverable for this feature, not a manual post-deploy step.
+- ~~**FR-011**~~: _(Removed)_ Branch protection is explicitly out of scope for v1.0 — solo project, direct pushes to `main` are the normal workflow.
 
 ### Key Entities
 
