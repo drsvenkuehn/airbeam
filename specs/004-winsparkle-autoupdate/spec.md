@@ -18,7 +18,7 @@ WinSparkle requires an Ed25519 key pair to verify appcast update signatures. The
 
 - Q: Where is `winsparkle-sign` obtained? → A: Bundled in WinSparkle's GitHub release zip alongside `WinSparkle.dll`; CI must extract it from that archive.
 - Q: Where is `appcast.xml` published? → A: GitHub Pages only (stable URL at `https://<org>.github.io/airbeam/appcast.xml`); NOT attached to individual GitHub Releases.
-- Q: How is the public key passed to WinSparkle at startup? → A: Compile-time embed; CMake reads `sparkle_pubkey.txt` and injects the key as a preprocessor definition or generated header so no file dependency exists at runtime.
+- Q: How is the public key passed to WinSparkle at startup? → A: Compile-time embed via Win32 string resource `IDS_SPARKLE_PUBKEY` defined in each locale RC file (`resources/locales/strings_*.rc`). `SparkleIntegration.cpp` reads it at startup via `StringLoader::Load(IDS_SPARKLE_PUBKEY)` and passes it to `win_sparkle_set_eddsa_pub_key()`; no file read occurs at runtime. `resources/sparkle_pubkey.txt` is a documentation reference; the RC files are the authoritative compile-time source.
 - Q: What is the final GitHub repo location for the appcast URL? → A: Repo stays at `drsvenkuehn/airbeam`; appcast URL is `https://drsvenkuehn.github.io/airbeam/appcast.xml`.
 
 ---
@@ -75,7 +75,7 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 
 ### Edge Cases
 
-- What if `SPARKLE_PRIVATE_KEY` secret is not set in a fork? → Signing step must be guarded with `if: secrets.SPARKLE_PRIVATE_KEY != ''`; appcast is published without signature (update will be detected but not installable — acceptable for fork testing).
+- What if `SPARKLE_PRIVATE_KEY` secret is not set in a fork? → Signing step must be guarded with `if: env.SPARKLE_PRIVATE_KEY != ''` (secret declared at job-level `env:` block so the `if:` expression resolves correctly at evaluation time); appcast is published without signature (update will be detected but not installable — acceptable for fork testing).
 - What if the appcast URL is unreachable? → WinSparkle already handles timeouts gracefully; no change needed.
 - What if the installer is re-uploaded (e.g., hotfix to the same version)? → The artifact must be re-signed; the `sparkle:edSignature` in appcast must match the new binary.
 - How large can the private key secret be? → Ed25519 private key is 32 bytes (64 hex chars) — well within GitHub Actions secret limits.
@@ -89,10 +89,10 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 - **FR-001**: An Ed25519 key pair MUST be generated using `winsparkle-sign --generate-keys`. The `winsparkle-sign` tool is distributed inside the WinSparkle GitHub release zip alongside `WinSparkle.dll`; CI must extract it from that archive before invoking it.
 - **FR-002**: The Ed25519 public key MUST be stored in `resources/sparkle_pubkey.txt` as a Base64-encoded string (WinSparkle format).
 - **FR-003**: The Ed25519 private key MUST NEVER be committed to the repository; it MUST be stored only as a GitHub Actions secret (`SPARKLE_PRIVATE_KEY`).
-- **FR-004**: The Ed25519 public key from `resources/sparkle_pubkey.txt` MUST be embedded at compile time (CMake reads the file and injects it as a preprocessor definition or generated header). `AppController.cpp` MUST pass this compile-time constant to `WinSparkle_set_ed_dsa_pub_key` at startup. No file read occurs at runtime.
+- **FR-004**: The Ed25519 public key MUST be embedded at compile time via Win32 string resource `IDS_SPARKLE_PUBKEY` in all locale RC files (`resources/locales/strings_*.rc`). `SparkleIntegration.cpp` reads it at startup via `StringLoader::Load(IDS_SPARKLE_PUBKEY)` and passes it to `win_sparkle_set_eddsa_pub_key()`. No file read occurs at runtime. `resources/sparkle_pubkey.txt` is a documentation reference only; the RC files are the authoritative compile-time source.
 - **FR-005**: The release workflow MUST include a step that calls `winsparkle-sign <installer> --ed-key $SPARKLE_PRIVATE_KEY` and captures the resulting Base64 signature.
 - **FR-006**: The appcast generation step MUST embed the captured signature as `sparkle:edSignature` on the `<enclosure>` element, and the resulting `appcast.xml` MUST be committed/pushed to the GitHub Pages branch so it is served from the stable `https://<org>.github.io/airbeam/appcast.xml` URL.
-- **FR-007**: The signing step MUST be guarded: `if: secrets.SPARKLE_PRIVATE_KEY != ''`.
+- **FR-007**: The signing step MUST be guarded: `if: env.SPARKLE_PRIVATE_KEY != ''` (secret declared at job-level `env:` block; step-level `env:` is evaluated after `if:` expressions and would always resolve empty).
 - **FR-008**: When the signing step is skipped, a `::warning::` annotation MUST be emitted so the release author is aware the update is unsigned.
 - **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST be set to `https://drsvenkuehn.github.io/airbeam/appcast.xml`. GitHub Pages must be enabled on the `drsvenkuehn/airbeam` repository before the first release.
 - **FR-010**: Key generation instructions MUST be documented in `docs/release-process.md` (or equivalent) for key rotation procedures.
