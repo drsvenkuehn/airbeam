@@ -4,6 +4,18 @@
 **Created**: 2025-07-10  
 **Status**: Draft  
 
+## Clarifications
+
+### Session 2026-03-22
+
+- Q: Does CI trigger on pushes to all branches (including `main`) or only non-`main` branches + PRs targeting `main`? → A: Non-`main` branch pushes + PRs targeting `main` only; direct pushes to `main` are enforced via branch protection (no duplicate CI run).
+- Q: Does CI need to install prerequisites (CMake/Ninja/MSVC) or use what's pre-installed on the runner? → A: Use pre-installed tools on `windows-latest` (CMake, Ninja, MSVC v143 are already present — no install step). CI jobs MUST clean up after themselves (delete build output and cache entries on completion).
+- Q: What cache scope for the CMake build directory? → A: Per-branch cache key (`${{ github.ref }}`); cache is isolated per branch and auto-evicted when the branch is deleted.
+- Q: Is configuring branch protection rules on `main` in scope for this feature? → A: Yes — the branch protection rule requiring the `ci` status check to pass before merge is in scope and must be configured as part of this feature.
+- Q: Should CI build debug only or also release preset? → A: `msvc-x64-debug` only; release builds are covered by the tag-triggered `release.yml` pipeline.
+
+---
+
 ## Summary
 
 Four related build and CI hardening changes that must land before the first public release:
@@ -46,10 +58,10 @@ A contributor opens a pull request; within a few minutes they see a green check 
 **Acceptance Scenarios**:
 
 1. **Given** a push to any non-`main` branch, **When** the push lands on GitHub, **Then** the `ci` workflow starts automatically.
-2. **Given** a pull request opened against `main`, **When** the PR is created or updated, **Then** the `ci` workflow runs and its result is required to pass before merge.
+2. **Given** a pull request opened against `main`, **When** the PR is created or updated, **Then** the `ci` workflow runs and its result is enforced as a required status check via branch protection — merge is blocked until it passes.
 3. **Given** a unit-test failure (e.g., a broken `SpscRingBuffer`), **When** CI runs, **Then** the workflow exits with a non-zero code and the PR check is marked failing.
 4. **Given** all tests pass, **When** CI completes, **Then** the workflow exits `0` and the PR check is marked passing.
-5. **Given** the `main` branch, **When** a direct push lands, **Then** CI also runs (protect against direct pushes that bypass PR checks).
+5. **Given** a direct push to `main`, **When** it lands, **Then** CI does NOT trigger (branch protection requires PRs; direct pushes are blocked at the repo policy level).
 
 ---
 
@@ -88,7 +100,7 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 ### Edge Cases
 
 - What if the pinned ALAC SHA is later force-pushed or the repo is deleted? → Document in `CMakeLists.txt` comment with a backup mirror URL.
-- What if CI runs on a Windows runner that doesn't have Strawberry Perl / CMake in `PATH`? → The workflow must use `windows-latest` and install prerequisites via `choco` or `winget`.
+- What if CI runs on a Windows runner that doesn't have Strawberry Perl / CMake in `PATH`? → Not applicable: `windows-latest` ships with CMake, Ninja, and MSVC v143 pre-installed. No install step is needed.
 - What if two release tags are pushed in quick succession? → Each workflow run is independent; the second appcast deploy overwrites the first (acceptable — only the latest is needed).
 - What if the code-signing step skips but the job still reports success? → Ensure a warning annotation is emitted so the release author notices the binary is unsigned.
 
@@ -100,14 +112,16 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 
 - **FR-001**: `CMakeLists.txt` MUST specify `GIT_TAG` for the ALAC dependency as a full 40-character commit SHA (not a branch name or `master`).
 - **FR-002**: The pinned ALAC commit MUST be documented with a comment indicating the equivalent upstream tag/date.
-- **FR-003**: A new workflow file `.github/workflows/ci.yml` MUST trigger on `push` (all branches) and `pull_request` (targeting `main`).
-- **FR-004**: The CI workflow MUST configure the `msvc-x64-debug` CMake preset and run `ctest -L unit --output-on-failure`.
-- **FR-005**: The CI workflow MUST use a `windows-latest` GitHub-hosted runner and cache the CMake build directory to reduce run time.
+- **FR-003**: A new workflow file `.github/workflows/ci.yml` MUST trigger on `push` to all branches **except `main`** and on `pull_request` events targeting `main`. Direct pushes to `main` are gated by branch protection (not a duplicate CI trigger).
+- **FR-004**: The CI workflow MUST configure the `msvc-x64-debug` CMake preset only and run `ctest -L unit --output-on-failure`. The `msvc-x64-release` preset is intentionally excluded from CI — it is built by the tag-triggered `release.yml` pipeline.
+- **FR-005**: The CI workflow MUST use a `windows-latest` GitHub-hosted runner. CMake, Ninja, and MSVC v143 are pre-installed — no install step required. The workflow MUST cache the CMake build directory using `actions/cache` with a per-branch key (`${{ github.ref }}-cmake-build`) so caches are isolated per branch and auto-evicted when the branch is deleted.
+- **FR-005a**: Every CI job MUST include a cleanup step (runs on `always()`) that deletes the build output directory and posts a cache eviction for keys created by that run, ensuring runners are not left with stale artifacts.
 - **FR-006**: `release.yml` line 138 `publish_dir` value MUST be set to the directory that contains the generated `appcast.xml` (not a placeholder TODO comment).
 - **FR-007**: The `publish_dir` value MUST match the path implied by `AIRBEAM_APPCAST_URL` in `CMakeLists.txt`.
 - **FR-008**: The code-signing step in `release.yml` MUST be wrapped with `if: secrets.CODESIGN_PFX != ''` so it is skipped when the secret is absent.
 - **FR-009**: When signing is skipped, the workflow MUST emit a `::warning::` annotation ("Code signing skipped — CODESIGN_PFX secret not set") so the release author is notified.
 - **FR-010**: When signing is present, the step MUST still fail loudly if `signtool` returns non-zero (no silent failure).
+- **FR-011**: Branch protection on `main` MUST be configured (via GitHub repository settings or `gh` CLI) to require the `ci` status check to pass before any PR can be merged. This is part of the deliverable for this feature, not a manual post-deploy step.
 
 ### Key Entities
 
@@ -123,7 +137,7 @@ A fork maintainer who has not configured `CODESIGN_PFX` can still run the releas
 ### Measurable Outcomes
 
 - **SC-001**: `cmake --configure` with a clean FetchContent cache fetches ALAC at exactly the pinned SHA — verified by `git -C <fetchcontent-dir> rev-parse HEAD`.
-- **SC-002**: Every push to any branch triggers a CI run that completes in under 15 minutes on a `windows-latest` runner.
+- **SC-002**: Every push to a non-`main` branch (and every PR update against `main`) triggers a CI run that completes in under 15 minutes on a `windows-latest` runner.
 - **SC-003**: A PR with a deliberately broken unit test shows a failing required status check blocking merge.
 - **SC-004**: A fork with no `CODESIGN_PFX` produces a complete (unsigned) installer artifact without any workflow error exit code.
 - **SC-005**: After a tagged release, `https://<org>.github.io/airbeam/appcast.xml` is reachable and contains the new version within 5 minutes of the workflow completing.
