@@ -1,0 +1,29 @@
+// strings_de.rc — German
+#include "..\\resource_ids.h"
+
+LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
+STRINGTABLE
+BEGIN
+    IDS_TOOLTIP_IDLE               "AirBeam \x2014 Bereit"
+    IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Verbinden\x2026"
+    IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \xdc\x62ertragung l\xe4uft"
+    IDS_TOOLTIP_ERROR              "AirBeam \x2014 Fehler"
+
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour ist nicht installiert. AirPlay-Erkennung ben\xf6tigt Bonjour. Klicken, um zu installieren."
+    IDS_BALLOON_CONNECTED          "Verbunden mit %s"
+    IDS_BALLOON_DISCONNECTED       "Verbindung zu %s getrennt"
+    IDS_BALLOON_CONNECTION_FAILED  "Verbindung zu %s fehlgeschlagen"
+    IDS_BALLOON_CONFIG_RESET       "Einstellungen wurden auf Standardwerte zur\xfcckgesetzt."
+    IDS_BALLOON_UPDATE_REJECTED    "Update abgelehnt: Signaturpr\xfcfung fehlgeschlagen."
+
+    IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 wird von diesem Empf\xe4nger nicht unterst\xfctzt"
+    IDS_MENU_VOLUME                "Lautst\xe4rke"
+    IDS_MENU_LOW_LATENCY           "Niedriger-Latenz-Modus"
+    IDS_MENU_LAUNCH_AT_STARTUP     "Beim Start ausf\xfchren"
+    IDS_MENU_OPEN_LOG_FOLDER       "Protokollordner \xf6ffnen"
+    IDS_MENU_CHECK_FOR_UPDATES     "Auf Updates pr\xfcfen\x2026"
+    IDS_MENU_QUIT                  "AirBeam beenden"
+    IDS_INSTALLER_BONJOUR_PROMPT   "Bonjour wird f\xfcr die AirPlay-Ger\xe4teerkennung ben\xf6tigt. Bonjour jetzt herunterladen und installieren?"
+
+    IDS_SPARKLE_PUBKEY             "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY"
+END

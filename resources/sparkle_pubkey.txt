@@ -1,0 +1,11 @@
+# AirBeam WinSparkle Ed25519 Public Key
+#
+# To generate a signing key pair:
+#   winsparkle-sign generate-keys
+#   (or use the WinSparkle key generation tool from the WinSparkle release)
+#
+# The public key goes in IDS_SPARKLE_PUBKEY in each locale RC file.
+# The private key goes in the SPARKLE_PRIVATE_KEY GitHub Actions secret.
+#
+# Current value: placeholder (must be replaced before first release)
+# TODO: Replace "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY" in all strings_*.rc files
