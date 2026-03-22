@@ -38,7 +38,8 @@ UINT TrayMenu::Show(HWND hwnd, const Config& config, bool sparkleAvailable,
         for (int i = 0; i < static_cast<int>(receivers.size()); ++i) {
             const auto& r = receivers[i];
             if (!r.isAirPlay1Compatible) {
-                std::wstring label = r.displayName + L" (AirPlay 2)";
+                std::wstring label = r.displayName + L" \u2014 " +
+                                     StringLoader::Load(IDS_LABEL_AIRPLAY2_UNSUPPORTED);
                 AppendMenuW(hMenu, MF_STRING | MF_GRAYED,
                             IDM_DEVICE_BASE + static_cast<UINT>(i), label.c_str());
             } else {

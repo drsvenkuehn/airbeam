@@ -13,7 +13,7 @@
 
 services:
   shairport-sync:
-    image: ghcr.io/mikebrady/shairport-sync:latest
+    image: mikebrady/shairport-sync:latest
     network_mode: host
     command: >
       -v
@@ -21,3 +21,16 @@ services:
       --port=5000
       -o dummy
     restart: unless-stopped
+  # Windows Docker Desktop / WSL2: use explicit port mappings below if
+  # network_mode: host does not expose port 5000 to Windows localhost.
+  # Uncomment and comment out the block above to switch:
+  #shairport-sync-mapped:
+  #  image: mikebrady/shairport-sync:latest
+  #  ports:
+  #    - "5000:5000"
+  #  command: >
+  #    -v
+  #    --name=AirBeam-Test
+  #    --port=5000
+  #    -o dummy
+  #  restart: unless-stopped
