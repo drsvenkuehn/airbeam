@@ -1,0 +1,23 @@
+# shairport-sync container for AirBeam integration and E2E tests.
+#
+# Usage:
+#   docker compose up -d
+#   ctest --output-on-failure   # integration tests auto-skip if container is unreachable
+#
+# Requirements:
+#   - Docker on Linux or WSL2 (network_mode: host is required for RTP UDP port negotiation)
+#   - The container exposes RTSP on TCP :5000 and accepts any UDP port for RTP/control/timing
+#
+# On Windows Docker Desktop without WSL2 backend, replace network_mode with explicit
+# port mappings and configure shairport-sync with a fixed RTP port range.
+
+services:
+  shairport-sync:
+    image: ghcr.io/mikebrady/shairport-sync:latest
+    network_mode: host
+    command: >
+      -v
+      --name=AirBeam-Test
+      --port=5000
+      -o dummy
+    restart: unless-stopped

@@ -1,0 +1,29 @@
+// strings_zh-Hans.rc — Simplified Chinese
+#include "..\\resource_ids.h"
+
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+STRINGTABLE
+BEGIN
+    IDS_TOOLTIP_IDLE               "AirBeam \x2014 \x5c31\x7eea"
+    IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 \x8fde\x63a5\x4e2d\x2026"
+    IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \x64ad\x653e\x4e2d"
+    IDS_TOOLTIP_ERROR              "AirBeam \x2014 \x9519\x8bef"
+
+    IDS_BALLOON_BONJOUR_MISSING    "\x672a\x5b89\x88c5 Bonjour\x3002AirPlay \x8bbe\x5907\x53d1\x73b0\x9700\x8981 Bonjour\x3002\x70b9\x51fb\x5b89\x88c5\x3002"
+    IDS_BALLOON_CONNECTED          "\x5df2\x8fde\x63a5\x5230 %s"
+    IDS_BALLOON_DISCONNECTED       "\x5df2\x4e0e %s \x65ad\x5f00\x8fde\x63a5"
+    IDS_BALLOON_CONNECTION_FAILED  "\x8fde\x63a5 %s \x5931\x8d25"
+    IDS_BALLOON_CONFIG_RESET       "\x8bbe\x7f6e\x5df2\x91cd\x7f6e\x4e3a\x9ed8\x8ba4\x5024\x3002"
+    IDS_BALLOON_UPDATE_REJECTED    "\x66f4\x65b0\x88ab\x62d2\x7edd\xff1a\x7b7e\x540d\x9a8c\x8bc1\x5931\x8d25\x3002"
+
+    IDS_LABEL_AIRPLAY2_UNSUPPORTED "\x6b64\x63a5\x6536\x65b9\x4e0d\x652f\x6301 AirPlay 2"
+    IDS_MENU_VOLUME                "\x97f3\x91cf"
+    IDS_MENU_LOW_LATENCY           "\x4f4e\x5ef6\x8fdf\x6a21\x5f0f"
+    IDS_MENU_LAUNCH_AT_STARTUP     "\x5f00\x673a\x81ea\x52a8\x542f\x52a8"
+    IDS_MENU_OPEN_LOG_FOLDER       "\x6253\x5f00\x65e5\x5fd7\x6587\x4ef6\x5939"
+    IDS_MENU_CHECK_FOR_UPDATES     "\u68c0\u67e5\u66f4\u65b0\x2026"
+    IDS_MENU_QUIT                  "\x9000\x51fa AirBeam"
+    IDS_INSTALLER_BONJOUR_PROMPT   "AirPlay \x8bbe\x5907\x53d1\x73b0\x9700\x8981 Bonjour\x3002\x662f\x5426\x73b0\x5728\x4e0b\x8f7d\x5e76\x5b89\x88c5 Bonjour\uff1f"
+
+    IDS_SPARKLE_PUBKEY             "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY"
+END

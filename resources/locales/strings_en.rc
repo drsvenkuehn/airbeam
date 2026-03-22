@@ -1,0 +1,29 @@
+// strings_en.rc — English (canonical locale)
+#include "..\\resource_ids.h"
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+STRINGTABLE
+BEGIN
+    IDS_TOOLTIP_IDLE               "AirBeam \x2014 Ready"
+    IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Connecting\x2026"
+    IDS_TOOLTIP_STREAMING          "AirBeam \x2014 Streaming"
+    IDS_TOOLTIP_ERROR              "AirBeam \x2014 Error"
+
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour is not installed. AirPlay discovery requires Bonjour. Click to install."
+    IDS_BALLOON_CONNECTED          "Connected to %s"
+    IDS_BALLOON_DISCONNECTED       "Disconnected from %s"
+    IDS_BALLOON_CONNECTION_FAILED  "Connection to %s failed"
+    IDS_BALLOON_CONFIG_RESET       "Settings have been reset to defaults."
+    IDS_BALLOON_UPDATE_REJECTED    "Update rejected: signature verification failed."
+
+    IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 not supported by this receiver"
+    IDS_MENU_VOLUME                "Volume"
+    IDS_MENU_LOW_LATENCY           "Low-Latency Mode"
+    IDS_MENU_LAUNCH_AT_STARTUP     "Launch at Startup"
+    IDS_MENU_OPEN_LOG_FOLDER       "Open Log Folder"
+    IDS_MENU_CHECK_FOR_UPDATES     "Check for Updates\x2026"
+    IDS_MENU_QUIT                  "Quit AirBeam"
+    IDS_INSTALLER_BONJOUR_PROMPT   "Bonjour is required for AirPlay device discovery. Download and install Bonjour now?"
+
+    IDS_SPARKLE_PUBKEY             "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY"
+END

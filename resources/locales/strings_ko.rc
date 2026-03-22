@@ -1,0 +1,29 @@
+// strings_ko.rc — Korean
+#include "..\\resource_ids.h"
+
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+STRINGTABLE
+BEGIN
+    IDS_TOOLTIP_IDLE               "AirBeam \x2014 \xc900\xbe44 \xc644\xb8cc"
+    IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 \xc5f0\xacb0 \xc911\x2026"
+    IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \xc2a4\xd2b8\xb9ac\xbc0d \xc911"
+    IDS_TOOLTIP_ERROR              "AirBeam \x2014 \xc624\xb958"
+
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour\uac00 \uc124\uce58\ub418\uc5b4 \uc788\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. AirPlay \uc7a5\uce58 \uac80\uc0c9\uc5d0\ub294 Bonjour\uac00 \ud544\uc694\ud569\ub2c8\ub2e4. \ud074\ub9ad\ud558\uc5ec \uc124\uce58\ud558\uc138\uc694."
+    IDS_BALLOON_CONNECTED          "%s\uc5d0 \uc5f0\uacb0\ub418\uc5c8\uc2b5\ub2c8\ub2e4"
+    IDS_BALLOON_DISCONNECTED       "%s\uc5d0\uc11c \uc5f0\uacb0\uc774 \ub04a\uc5b4\uc84c\uc2b5\ub2c8\ub2e4"
+    IDS_BALLOON_CONNECTION_FAILED  "%s \uc5f0\uacb0\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4"
+    IDS_BALLOON_CONFIG_RESET       "\uc124\uc815\uc774 \uae30\ubcf8\uac12\uc73c\ub85c \uc7ac\uc124\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4."
+    IDS_BALLOON_UPDATE_REJECTED    "\uc5c5\ub370\uc774\ud2b8\uac00 \uac70\ubd80\ub418\uc5c8\uc2b5\ub2c8\ub2e4: \uc11c\uba85 \uac80\uc99d\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4."
+
+    IDS_LABEL_AIRPLAY2_UNSUPPORTED "\uc774 \uc218\uc2e0\uae30\ub294 AirPlay 2\ub97c \uc9c0\uc6d0\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4"
+    IDS_MENU_VOLUME                "\ubcfc\ub968"
+    IDS_MENU_LOW_LATENCY           "\uc800\uc9c0\uc5f0 \ubaa8\ub4dc"
+    IDS_MENU_LAUNCH_AT_STARTUP     "\uc2dc\uc791 \uc2dc \uc2e4\ud589"
+    IDS_MENU_OPEN_LOG_FOLDER       "\ub85c\uadf8 \ud3f4\ub354 \uc5f4\uae30"
+    IDS_MENU_CHECK_FOR_UPDATES     "\uc5c5\ub370\uc774\ud2b8 \ud655\uc778\x2026"
+    IDS_MENU_QUIT                  "AirBeam \uc885\ub8cc"
+    IDS_INSTALLER_BONJOUR_PROMPT   "AirPlay \uc7a5\uce58 \uac80\uc0c9\uc5d0\ub294 Bonjour\uac00 \ud544\uc694\ud569\ub2c8\ub2e4. \uc9c0\uae08 Bonjour\ub97c \ub2e4\uc6b4\ub85c\ub4dc\ud558\uc5ec \uc124\uce58\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?"
+
+    IDS_SPARKLE_PUBKEY             "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY"
+END
