@@ -18,6 +18,8 @@ jobs:
     env:
       CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}
       CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+      WINSPARKLE_VERSION: "0.8.5"
 
     steps:
       # ── Step 1: Checkout ──────────────────────────────────────────────────
@@ -26,18 +28,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── Step 2: Configure & Build (Release) ───────────────────────────────
+      # ── Step 2: Download WinSparkle binaries ──────────────────────────────
+      - name: Download WinSparkle binaries
+        shell: pwsh
+        run: |
+          $ver = $env:WINSPARKLE_VERSION
+          $url = "https://github.com/vslavik/winsparkle/releases/download/v$ver/WinSparkle-$ver.zip"
+          Invoke-WebRequest $url -OutFile WinSparkle.zip
+          Expand-Archive WinSparkle.zip -DestinationPath WinSparkle-bin
+          $sign = Get-ChildItem WinSparkle-bin -Recurse -Filter "winsparkle-sign.exe" | Select-Object -First 1
+          $dll  = Get-ChildItem WinSparkle-bin -Recurse -Filter "WinSparkle.dll"      | Select-Object -First 1
+          Copy-Item $sign.FullName "winsparkle-sign.exe"
+          Copy-Item $dll.FullName  "WinSparkle.dll"
+          echo "$PWD" >> $env:GITHUB_PATH
+
+      # ── Step 3: Configure & Build (Release) ───────────────────────────────
       - name: Configure CMake (Release)
         run: cmake --preset msvc-x64-release
 
       - name: Build AirBeam.exe
         run: cmake --build --preset msvc-x64-release --config Release
 
-      # ── Step 3: Run unit tests ────────────────────────────────────────────
+      # ── Step 4: Run unit tests ────────────────────────────────────────────
       - name: Run unit tests
         run: ctest --preset msvc-x64-debug --output-on-failure
 
-      # ── Step 4: Package — NSIS installer ─────────────────────────────────
+      # ── Step 5: Package — NSIS installer ─────────────────────────────────
       - name: Build NSIS installer
         shell: pwsh
         run: |
@@ -45,16 +61,16 @@ jobs:
           makensis /DVERSION=$version installer\AirBeam.nsi
           Rename-Item build\AirBeamSetup.exe "build\AirBeam-${{ github.ref_name }}-Setup.exe"
 
-      # ── Step 5: Package — Portable ZIP ───────────────────────────────────
+      # ── Step 6: Package — Portable ZIP ───────────────────────────────────
       - name: Create portable ZIP
         run: |
           New-Item -ItemType Directory -Force portable\AirBeam
           Copy-Item build\Release\AirBeam.exe portable\AirBeam\
-          Copy-Item WinSparkle.dll portable\AirBeam\ -ErrorAction SilentlyContinue
+          Copy-Item WinSparkle.dll portable\AirBeam\
           Compress-Archive -Path portable\AirBeam -DestinationPath build\AirBeam-portable.zip
         shell: pwsh
 
-      # ── Step 6: OV code-sign installer + exe ─────────────────────────────
+      # ── Step 7: OV code-sign installer + exe ─────────────────────────────
       - name: Warn — code signing skipped
         if: env.CODESIGN_PFX == ''
         shell: pwsh
@@ -76,17 +92,21 @@ jobs:
           }
           Remove-Item $pfxPath -Force
 
-      # ── Step 7: EdDSA sign installer for WinSparkle ───────────────────────
-      - name: Sign installer with winsparkle-sign (EdDSA / Ed25519)
+      # ── Step 8: EdDSA sign installer for WinSparkle ──────────────────────
+      - name: Warn — EdDSA signing skipped
+        if: env.SPARKLE_PRIVATE_KEY == ''
         shell: pwsh
-        env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: Write-Host "::warning::EdDSA signing skipped — SPARKLE_PRIVATE_KEY secret not set; update will be unsigned"
+
+      - name: Sign installer with winsparkle-sign (Ed25519)
+        if: env.SPARKLE_PRIVATE_KEY != ''
+        shell: pwsh
         run: |
           $installer = "build\AirBeam-${{ github.ref_name }}-Setup.exe"
           $signature = & winsparkle-sign $installer
           echo "SPARKLE_SIGNATURE=$signature" >> $env:GITHUB_ENV
 
-      # ── Step 8: Upload to GitHub Release ─────────────────────────────────
+      # ── Step 9: Upload to GitHub Release ─────────────────────────────────
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
@@ -97,8 +117,8 @@ jobs:
             build/AirBeam-${{ github.ref_name }}-Setup.exe
             build/AirBeam-portable.zip
 
-      # ── Step 9: Update appcast.xml ────────────────────────────────────────
-      - name: Update appcast.xml on gh-pages
+      # ── Step 10: Update appcast.xml on gh-pages ───────────────────────────
+      - name: Build updated appcast.xml
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart('v')
@@ -107,31 +127,42 @@ jobs:
           $url     = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/AirBeam-${{ github.ref_name }}-Setup.exe"
           $size    = (Get-Item "build\AirBeam-${{ github.ref_name }}-Setup.exe").Length
 
-          $item = @"
-        <item>
-            <title>AirBeam $version</title>
-            <pubDate>$date</pubDate>
-            <sparkle:version>$version</sparkle:version>
-            <sparkle:shortVersionString>$version</sparkle:shortVersionString>
-            <sparkle:edSignature>$sig</sparkle:edSignature>
-            <enclosure
-                url="$url"
-                sparkle:version="$version"
-                type="application/octet-stream"
-                length="$size"
-            />
-            <sparkle:releaseNotesLink>
-                https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
-            </sparkle:releaseNotesLink>
-        </item>
-"@
-          git fetch origin gh-pages
-          git checkout gh-pages
-          $xml = Get-Content .github/appcast.xml -Raw
-          $xml = $xml -replace '(\s*</channel>)', "`n$item`$1"
-          Set-Content appcast.xml $xml
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add appcast.xml
-          git commit -m "chore: update appcast.xml for ${{ github.ref_name }}"
-          git push origin gh-pages
+          $item = @(
+            "    <item>",
+            "      <title>AirBeam $version</title>",
+            "      <pubDate>$date</pubDate>",
+            "      <sparkle:version>$version</sparkle:version>",
+            "      <sparkle:shortVersionString>$version</sparkle:shortVersionString>",
+            "      <enclosure",
+            "        url=`"$url`"",
+            "        sparkle:edSignature=`"$sig`"",
+            "        sparkle:version=`"$version`"",
+            "        type=`"application/octet-stream`"",
+            "        length=`"$size`"",
+            "      />",
+            "      <sparkle:releaseNotesLink>",
+            "        https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}",
+            "      </sparkle:releaseNotesLink>",
+            "    </item>"
+          ) -join "`n"
+
+          # Read existing appcast.xml from gh-pages; fall back to seed template on first run
+          $rawLines = git show origin/gh-pages:appcast.xml 2>$null
+          if ($rawLines) {
+            $existing = $rawLines -join "`n"
+          } else {
+            $existing = Get-Content .github/appcast.xml -Raw
+          }
+
+          # Inject new <item> immediately before </channel>
+          $updated = $existing -replace '(\s*</channel>)', "`n$item`$1"
+
+          New-Item -ItemType Directory -Force gh-pages-out | Out-Null
+          Set-Content -Path "gh-pages-out\appcast.xml" -Value $updated -Encoding UTF8
+
+      - name: Deploy appcast.xml to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./gh-pages-out

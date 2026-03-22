@@ -2,24 +2,9 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
     <channel>
         <title>AirBeam Changelog</title>
-        <link>https://TODO_ORG.github.io/airbeam/appcast.xml</link>
+        <link>https://drsvenkuehn.github.io/airbeam/appcast.xml</link>
         <description>Most recent changes to AirBeam</description>
         <language>en</language>
-        <item>
-            <title>AirBeam 1.0.0</title>
-            <pubDate>Mon, 01 Jan 2025 00:00:00 +0000</pubDate>
-            <sparkle:version>1.0.0</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-            <sparkle:edSignature>TODO_REPLACE_WITH_ED25519_SIGNATURE</sparkle:edSignature>
-            <enclosure
-                url="https://github.com/TODO_ORG/airbeam/releases/download/v1.0.0/AirBeamSetup.exe"
-                sparkle:version="1.0.0"
-                type="application/octet-stream"
-                length="0"
-            />
-            <sparkle:releaseNotesLink>
-                https://github.com/TODO_ORG/airbeam/releases/tag/v1.0.0
-            </sparkle:releaseNotesLink>
-        </item>
+        <!-- Items are prepended here by the release workflow (release.yml Step 10) -->
     </channel>
 </rss>
