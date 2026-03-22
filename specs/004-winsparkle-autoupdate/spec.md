@@ -83,7 +83,7 @@ If the private key is ever compromised, a new key pair can be generated, the pub
 - **FR-006**: The appcast generation step MUST embed the captured signature as `sparkle:edSignature` on the `<enclosure>` element.
 - **FR-007**: The signing step MUST be guarded: `if: secrets.SPARKLE_PRIVATE_KEY != ''`.
 - **FR-008**: When the signing step is skipped, a `::warning::` annotation MUST be emitted so the release author is aware the update is unsigned.
-- **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST point to `https://drsvenkuehn.github.io/airbeam/appcast.xml` (the real GitHub Pages URL, not `TODO_ORG`).
+- **FR-009**: `AIRBEAM_APPCAST_URL` in `CMakeLists.txt` MUST point to `https://VertWerk.github.io/airbeam/appcast.xml` (the real GitHub Pages URL, not `TODO_ORG`).
 - **FR-010**: Key generation instructions MUST be documented in `docs/release-process.md` (or equivalent) for key rotation procedures.
 
 ### Key Entities

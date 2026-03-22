@@ -28,7 +28,7 @@ endif()
 
 # ── Appcast URL (fill TODO(APPCAST_URL) before first release) ───────────────
 set(AIRBEAM_APPCAST_URL
-    "https://TODO_ORG.github.io/airbeam/appcast.xml"
+    "https://VertWerk.github.io/airbeam/appcast.xml"
     CACHE STRING "WinSparkle appcast XML URL")
 
 # ── FetchContent dependencies ───────────────────────────────────────────────

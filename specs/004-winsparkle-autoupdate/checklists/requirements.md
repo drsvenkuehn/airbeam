@@ -31,7 +31,7 @@
 
 ## Notes
 
-- FR-009: `TODO_ORG` resolved to `drsvenkuehn` — appcast URL is now `https://drsvenkuehn.github.io/airbeam/appcast.xml`
+- FR-009: `TODO_ORG` resolved to `VertWerk` — appcast URL is now `https://VertWerk.github.io/airbeam/appcast.xml`
 - FR-007 guard uses `if: secrets.SPARKLE_PRIVATE_KEY != ''` (step-level) — plan phase must use job-level env pattern per lesson from spec 002 FR-008
 - US3 (key rotation) is P3 — deferred documentation; P1/P2 stories are the implementation MVP
 - `winsparkle-sign` tool availability must be confirmed in plan phase (may require download/install step)
