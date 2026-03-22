@@ -66,6 +66,19 @@ bool AppController::Start(HINSTANCE hInst, HWND hwnd, bool isStartupLaunch) {
     // ── Receiver list ─────────────────────────────────────────────────────────
     receiverList_ = std::make_unique<ReceiverList>(hwnd);
 
+    // ── Bonjour / mDNS discovery (Thread 2) ──────────────────────────────────
+    bonjourLoader_ = std::make_unique<BonjourLoader>();
+    if (!bonjourLoader_->Load()) {
+        // dnssd.dll not installed — notify user; discovery is non-functional.
+        // We continue startup so the tray icon still appears.
+        LOG_WARN("AppController::Start — Bonjour runtime not found; posting WM_BONJOUR_MISSING");
+        PostMessageW(hwnd_, WM_BONJOUR_MISSING, 0, 0);
+    } else {
+        mdnsDiscovery_ = std::make_unique<MdnsDiscovery>(*bonjourLoader_, *receiverList_);
+        mdnsDiscovery_->Start();
+        LOG_INFO("AppController::Start — mDNS discovery started");
+    }
+
     // ── WinSparkle ───────────────────────────────────────────────────────────
     sparkle_.Init(config_);
     sparkle_.SetMainHwnd(hwnd_);
@@ -98,7 +111,8 @@ void AppController::Shutdown() {
 #endif
 
     // 1. Stop mDNS (Thread 2) — joins with 150 ms cap (one select() cycle)
-    if (mdnsDiscovery_) mdnsDiscovery_->Stop();
+    if (mdnsDiscovery_) { mdnsDiscovery_->Stop(); mdnsDiscovery_.reset(); }
+    if (bonjourLoader_) { bonjourLoader_->Unload(); bonjourLoader_.reset(); }
 
     // 2. If streaming: send TEARDOWN (Thread 5), wait ≤1500 ms
     if (raopSession_ && raopSession_->IsRunning()) {

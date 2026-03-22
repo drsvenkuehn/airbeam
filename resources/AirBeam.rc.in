@@ -34,11 +34,19 @@ BEGIN
 END
 
 // ── Application icon (4 states + 8 animation frames) ─────────────────────────
-// Placeholder: real icons to be added before release
-// IDI_TRAY_IDLE         ICON  "icons/tray_idle.ico"
-// IDI_TRAY_STREAMING    ICON  "icons/tray_streaming.ico"
-// IDI_TRAY_ERROR        ICON  "icons/tray_error.ico"
-// IDI_TRAY_CONN_001 through IDI_TRAY_CONN_008  ICON  "icons/tray_connecting_00N.ico"
+#include "resource_ids.h"
+
+IDI_TRAY_IDLE       ICON  "icons/airbeam_idle.ico"
+IDI_TRAY_STREAMING  ICON  "icons/airbeam_streaming.ico"
+IDI_TRAY_ERROR      ICON  "icons/airbeam_error.ico"
+IDI_TRAY_CONN_001   ICON  "icons/airbeam_connecting_001.ico"
+IDI_TRAY_CONN_002   ICON  "icons/airbeam_connecting_002.ico"
+IDI_TRAY_CONN_003   ICON  "icons/airbeam_connecting_003.ico"
+IDI_TRAY_CONN_004   ICON  "icons/airbeam_connecting_004.ico"
+IDI_TRAY_CONN_005   ICON  "icons/airbeam_connecting_005.ico"
+IDI_TRAY_CONN_006   ICON  "icons/airbeam_connecting_006.ico"
+IDI_TRAY_CONN_007   ICON  "icons/airbeam_connecting_007.ico"
+IDI_TRAY_CONN_008   ICON  "icons/airbeam_connecting_008.ico"
 
 // ── String table — English (canonical; other locales in locales/strings_*.rc) ─
 // Included via strings_en.rc at build time

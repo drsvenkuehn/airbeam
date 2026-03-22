@@ -26,3 +26,16 @@
 
 // ── WinSparkle Ed25519 public key ─────────────────────────────────────────────
 #define IDS_SPARKLE_PUBKEY            1030
+
+// ── Tray icon resources ───────────────────────────────────────────────────────
+#define IDI_TRAY_IDLE                 2001
+#define IDI_TRAY_STREAMING            2002
+#define IDI_TRAY_ERROR                2003
+#define IDI_TRAY_CONN_001             2011
+#define IDI_TRAY_CONN_002             2012
+#define IDI_TRAY_CONN_003             2013
+#define IDI_TRAY_CONN_004             2014
+#define IDI_TRAY_CONN_005             2015
+#define IDI_TRAY_CONN_006             2016
+#define IDI_TRAY_CONN_007             2017
+#define IDI_TRAY_CONN_008             2018

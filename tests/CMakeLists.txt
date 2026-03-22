@@ -28,14 +28,19 @@ set(E2E_TEST_SOURCES
 )
 
 # ── Core sources compiled into the test binary ───────────────────────────────
-# Only the translation units directly exercised by current unit tests are
-# included here; the rest are added as their own tests are implemented.
 set(TEST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/Logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Config.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/VolumeMapper.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/AesCbcCipher.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/RetransmitBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/protocol/NtpClock.cpp
+    ${CMAKE_SOURCE_DIR}/src/protocol/SdpBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/protocol/RsaKeyWrap.cpp
+    ${CMAKE_SOURCE_DIR}/src/protocol/RaopSession.cpp
+    ${CMAKE_SOURCE_DIR}/src/audio/AlacEncoderThread.cpp
+    ${CMAKE_SOURCE_DIR}/src/audio/Resampler.cpp
+    ${CMAKE_SOURCE_DIR}/src/audio/WasapiCapture.cpp
     ${CMAKE_SOURCE_DIR}/src/discovery/TxtRecord.cpp
 )
 
@@ -66,12 +71,15 @@ target_link_libraries(AirBeamTests PRIVATE
     alac_static
     nlohmann_json::nlohmann_json
     ole32.lib
+    oleaut32.lib
     avrt.lib
     bcrypt.lib
+    winmm.lib
     ws2_32.lib
     user32.lib
     advapi32.lib
     shell32.lib   # Logger::OpenLogFolder → ShellExecuteW
+    gdi32.lib
 )
 
 if(AIRBEAM_USE_RESAMPLER)

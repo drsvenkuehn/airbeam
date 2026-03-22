@@ -4,21 +4,48 @@
 #include "ui/TrayIcon.h"
 #include "localization/StringLoader.h"
 #include "core/Messages.h"   // WM_TRAY_CALLBACK
-#include "resource_ids.h"    // IDS_TOOLTIP_*
+#include "resource_ids.h"    // IDS_TOOLTIP_*, IDI_TRAY_*
 
 static constexpr UINT  ANIM_INTERVAL_MS = 150;
 static constexpr int   ANIM_FRAME_COUNT = 8;
 
 // ---------------------------------------------------------------------------
-// Returns a system stock icon as a placeholder until real .ico files exist.
+// Loads the branded application icon for a given tray state.
+// Falls back to system stock icons if the resource is not embedded
+// (e.g. running tests outside the full installer).
 // ---------------------------------------------------------------------------
-static HICON PlaceholderIcon(TrayState state)
+static HICON LoadTrayIcon(HINSTANCE hInst, TrayState state)
 {
+    UINT resId = IDI_TRAY_IDLE;
     switch (state) {
-        case TrayState::Streaming: return LoadIconW(nullptr, IDI_INFORMATION);
-        case TrayState::Error:     return LoadIconW(nullptr, IDI_ERROR);
-        default:                   return LoadIconW(nullptr, IDI_APPLICATION);
+        case TrayState::Streaming:  resId = IDI_TRAY_STREAMING; break;
+        case TrayState::Error:      resId = IDI_TRAY_ERROR;     break;
+        case TrayState::Connecting: resId = IDI_TRAY_CONN_001;  break;
+        default:                    resId = IDI_TRAY_IDLE;      break;
     }
+    HICON hIcon = static_cast<HICON>(
+        LoadImageW(hInst, MAKEINTRESOURCEW(resId), IMAGE_ICON, 16, 16, LR_SHARED));
+    if (!hIcon) {
+        // Fallback: system stock icons when resources are unavailable
+        switch (state) {
+            case TrayState::Streaming: return LoadIconW(nullptr, IDI_INFORMATION);
+            case TrayState::Error:     return LoadIconW(nullptr, IDI_ERROR);
+            default:                   return LoadIconW(nullptr, IDI_APPLICATION);
+        }
+    }
+    return hIcon;
+}
+
+static HICON LoadAnimFrame(HINSTANCE hInst, int frame)
+{
+    static constexpr UINT kAnimIds[ANIM_FRAME_COUNT] = {
+        IDI_TRAY_CONN_001, IDI_TRAY_CONN_002, IDI_TRAY_CONN_003, IDI_TRAY_CONN_004,
+        IDI_TRAY_CONN_005, IDI_TRAY_CONN_006, IDI_TRAY_CONN_007, IDI_TRAY_CONN_008
+    };
+    HICON hIcon = static_cast<HICON>(
+        LoadImageW(hInst, MAKEINTRESOURCEW(kAnimIds[frame & 7]),
+                   IMAGE_ICON, 16, 16, LR_SHARED));
+    return hIcon ? hIcon : LoadIconW(nullptr, IDI_APPLICATION);
 }
 
 // ---------------------------------------------------------------------------
@@ -35,7 +62,7 @@ bool TrayIcon::Create(HWND hwnd, HINSTANCE hInst)
     nid.uID              = NOTIFY_UID;
     nid.uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nid.uCallbackMessage = WM_TRAY_CALLBACK;
-    nid.hIcon            = PlaceholderIcon(TrayState::Idle);
+    nid.hIcon            = LoadTrayIcon(hInst_, TrayState::Idle);
 
     std::wstring tip = StringLoader::Load(IDS_TOOLTIP_IDLE);
     wcsncpy_s(nid.szTip, _countof(nid.szTip), tip.c_str(), _TRUNCATE);
@@ -83,7 +110,6 @@ void TrayIcon::SetState(TrayState state, const wchar_t* deviceName)
 
     std::wstring tip = StringLoader::Load(tipId);
     if (deviceName && tip.find(L"%s") != std::wstring::npos) {
-        // Format strings in tooltip resources use %s for the device name
         wchar_t formatted[128] = {};
         if (_snwprintf_s(formatted, _countof(formatted), _TRUNCATE,
                          tip.c_str(), deviceName) >= 0) {
@@ -99,7 +125,7 @@ void TrayIcon::SetState(TrayState state, const wchar_t* deviceName)
     nid.hWnd   = hwnd_;
     nid.uID    = NOTIFY_UID;
     nid.uFlags = NIF_ICON | NIF_TIP;
-    nid.hIcon  = PlaceholderIcon(state);
+    nid.hIcon  = LoadTrayIcon(hInst_, state);
     wcsncpy_s(nid.szTip, _countof(nid.szTip), tip.c_str(), _TRUNCATE);
 
     Shell_NotifyIconW(NIM_MODIFY, &nid);
@@ -113,14 +139,14 @@ void TrayIcon::OnAnimationTick()
 
     frame_ = (frame_ + 1) % ANIM_FRAME_COUNT;
 
-    // Placeholder: cycles the same icon; real frames will use per-frame ICOs
-    // loaded from IDI_TRAY_CONN_001 … IDI_TRAY_CONN_008.
     NOTIFYICONDATAW nid = {};
     nid.cbSize = sizeof(nid);
     nid.hWnd   = hwnd_;
     nid.uID    = NOTIFY_UID;
     nid.uFlags = NIF_ICON;
-    nid.hIcon  = PlaceholderIcon(TrayState::Connecting);
+    nid.hIcon  = LoadAnimFrame(hInst_, frame_);
 
     Shell_NotifyIconW(NIM_MODIFY, &nid);
 }
+
+

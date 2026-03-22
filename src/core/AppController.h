@@ -20,6 +20,7 @@
 #include "audio/WasapiCapture.h"
 #include "audio/AlacEncoderThread.h"
 #include "protocol/RaopSession.h"
+#include "discovery/BonjourLoader.h"
 #include "discovery/MdnsDiscovery.h"
 
 // Top-level orchestrator.  Owns all subsystems and dispatches Win32 messages.
@@ -101,6 +102,7 @@ private:
     SparkleIntegration sparkle_;
 
     std::unique_ptr<ReceiverList>  receiverList_;
+    std::unique_ptr<BonjourLoader> bonjourLoader_;
     std::unique_ptr<MdnsDiscovery> mdnsDiscovery_;
 
     // Session objects (owned by AppController)
