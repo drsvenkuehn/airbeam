@@ -27,7 +27,7 @@
 **Independent test**: `resources/locales/strings_en.rc` contains no `TODO_REPLACE_WITH_ED25519_PUBLIC_KEY`; key length ≥ 43 chars (SC-005).
 
 - [x] T002 Run `winsparkle-tool.exe generate-key --file <keyfile>` and `winsparkle-tool.exe public-key --private-key-file <keyfile>`; store private key securely and record the Base64 public key from stdout (see `quickstart.md` Step 2)
-- [ ] T003 Add `SPARKLE_PRIVATE_KEY` repository secret at `https://github.com/drsvenkuehn/airbeam/settings/secrets/actions` using the private key from T002; confirm secret appears in the Actions secrets list (see `quickstart.md` Step 3)
+- [x] T003 Add `SPARKLE_PRIVATE_KEY` repository secret at `https://github.com/drsvenkuehn/airbeam/settings/secrets/actions` using the private key from T002; confirm secret appears in the Actions secrets list (see `quickstart.md` Step 3)
 - [x] T004 Replace `TODO_REPLACE_WITH_ED25519_PUBLIC_KEY` with the real Base64 public key in all 7 `resources/locales/strings_*.rc` files (`strings_en.rc`, `strings_de.rc`, `strings_fr.rc`, `strings_es.rc`, `strings_ja.rc`, `strings_ko.rc`, `strings_zh-Hans.rc`) (see `quickstart.md` Step 4)
 - [x] T005 Update `resources/sparkle_pubkey.txt`: replace the `Current value: placeholder` line with the real Base64 public key and add `Generated: <DATE>`; update the TODO comment to note replacement is complete
 
@@ -58,7 +58,7 @@
 
 **Independent test**: `winsparkle-tool verify --public-key <pubkey> --signature <sig> <installer>` exits `0`; a WinSparkle-enabled AirBeam build shows the update dialog when pointed at a crafted appcast (SC-001, SC-002, SC-005).
 
-- [ ] T016 [US1] Create the `gh-pages` orphan branch with the corrected `appcast.xml` seed: `git checkout --orphan gh-pages`, remove all tracked files, copy `.github/appcast.xml` to `appcast.xml` at repo root, commit as `chore: initialize gh-pages with appcast.xml seed`, push to `origin gh-pages` — see `plan.md` Phase 6
+- [x] T016 [US1] Create the `gh-pages` orphan branch with the corrected `appcast.xml` seed: `git checkout --orphan gh-pages`, remove all tracked files, copy `.github/appcast.xml` to `appcast.xml` at repo root, commit as `chore: initialize gh-pages with appcast.xml seed`, push to `origin gh-pages` — see `plan.md` Phase 6
 - [ ] T017 [US1] Enable GitHub Pages on `drsvenkuehn/airbeam`: `Settings → Pages → Source: Deploy from branch → gh-pages / (root)` — confirm the Pages URL resolves to `https://drsvenkuehn.github.io/airbeam/appcast.xml` (FR-009)
 - [ ] T018 [US1] Validate SC-001 locally: write `$env:SPARKLE_PRIVATE_KEY` to a key file, sign with `winsparkle-tool.exe sign --private-key-file <keyfile> build\Debug\AirBeam.exe`, then run `winsparkle-tool.exe verify --public-key <BASE64_PUBKEY> --signature <SIG> build\Debug\AirBeam.exe` and confirm exit code `0`
 - [ ] T019 [US1] Validate SC-005: confirm `resources/sparkle_pubkey.txt` and all 7 RC files contain no placeholder string; check key length ≥ 43 chars: `(Select-String "TODO_REPLACE" resources\locales\strings_en.rc) -eq $null`
