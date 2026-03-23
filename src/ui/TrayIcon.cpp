@@ -6,7 +6,7 @@
 #include "core/Messages.h"   // WM_TRAY_CALLBACK
 #include "resource_ids.h"    // IDS_TOOLTIP_*, IDI_TRAY_*
 
-static constexpr UINT  ANIM_INTERVAL_MS = 150;
+static constexpr UINT  ANIM_INTERVAL_MS = 125;  // 125 ms × 8 frames = 1000 ms cycle (SC-004)
 static constexpr int   ANIM_FRAME_COUNT = 8;
 
 // ---------------------------------------------------------------------------
