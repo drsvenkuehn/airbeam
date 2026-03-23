@@ -92,3 +92,18 @@ gtest_discover_tests(AirBeamTests
     PROPERTIES LABELS "unit"
     DISCOVERY_TIMEOUT 30
 )
+
+# ── Icon asset validation ─────────────────────────────────────────────────────
+# Verifies all 11 branded ICO files are present, have valid ICO headers,
+# contain ≥ 2 frames, and are larger than a placeholder (> 1 KB).
+# Fails the build if ICOs are accidentally reverted to single-frame stubs.
+find_program(PWSH_EXECUTABLE NAMES pwsh pwsh.exe)
+if(PWSH_EXECUTABLE)
+    add_test(
+        NAME    icon-validation
+        COMMAND "${PWSH_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/resources/icons/validate_icons.ps1"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/resources/icons/src"
+    )
+    set_tests_properties(icon-validation PROPERTIES LABELS "assets")
+endif()

@@ -37,7 +37,7 @@ Each `.ico` file MUST satisfy all constraints:
 | Frame: 32×32 | REQUIRED, 32-bit RGBA | System tray at 200% DPI; taskbar |
 | Frame: 48×48 | RECOMMENDED, 32-bit RGBA | Taskbar pinning |
 | Bit depth | 32-bit (RGBA with alpha channel) | Smooth edges; transparent background |
-| File size | ≥ 10 KB (branded), < 100 KB | Size check distinguishes placeholders from real assets |
+| File size | ≥ 1 KB (branded), < 100 KB | Size check distinguishes placeholders from real assets. Note: programmatic sparse artwork (mostly-transparent PNG frames) compresses to ~1.5–2 KB — well above the 680-byte placeholder baseline. The original estimate of ≥ 10 KB assumed uncompressed RGBA bitmaps; PNG-in-ICO compression reduces this by ~8×. |
 | Background | Transparent (alpha = 0 outside icon shape) | Tray shows OS background through icon |
 
 ---

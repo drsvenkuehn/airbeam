@@ -15,7 +15,7 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 |---|---------|------|------|-------|--------|
 | 001 | AirPlay Audio Sender | ✅ | ✅ | 101/101 | ✅ Complete |
 | 002 | CI / Build Hardening | ✅ | ✅ | 9/9 | ✅ Complete |
-| 003 | Branded Tray Icons | ✅ | — | — | 🔲 Needs plan + tasks |
+| 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
 | 004 | WinSparkle Auto-Update | ✅ | ✅ | 11/23¹ | 🔶 Partial — needs developer key gen |
 | 005 | Bonjour Install Guidance | ✅ | — | — | 🔲 Needs plan + tasks |
 
@@ -26,7 +26,7 @@ action; T006–T014 and T021–T022 (CI pipeline + docs) are implemented.
 
 **004 — WinSparkle Auto-Update (developer actions)**
 
-1. Download WinSparkle 0.8.5 → run `winsparkle-sign --generate-keys`
+1. Download WinSparkle 0.9.2 → run `winsparkle-tool generate-key --file <keyfile>` and `winsparkle-tool public-key --private-key-file <keyfile>`
 2. Add `SPARKLE_PRIVATE_KEY` secret to GitHub Actions
 3. Replace `TODO_REPLACE_WITH_ED25519_PUBLIC_KEY` in all 7 `resources/locales/strings_*.rc`
 4. Update `resources/sparkle_pubkey.txt`
@@ -35,9 +35,15 @@ action; T006–T014 and T021–T022 (CI pipeline + docs) are implemented.
 
 See [`specs/004-winsparkle-autoupdate/quickstart.md`](004-winsparkle-autoupdate/quickstart.md) for the step-by-step procedure.
 
-**003 — Branded Tray Icons**
+**003 — Branded Tray Icons (manual review pending)**
 
-Run `/speckit.plan` then `/speckit.tasks` to generate implementation plan and tasks.
+Icons generated and committed. CTest `icon-validation` test added. Manual acceptance work:
+1. Build Release configuration and verify all 11 icons embedded (`Resource Hacker` or `sigcheck -i`)
+2. Visual review at 16×16 and 32×32 on 100% + 150% DPI (SC-001)
+3. Confirm idle/streaming/error states identifiable without tooltip (SC-002)
+4. Verify connecting animation cycles at ~1000 ms (SC-004, fixed to 125 ms × 8)
+
+See [`specs/003-branded-tray-icons/tasks.md`](003-branded-tray-icons/tasks.md) T009–T021 for full review checklist.
 
 **005 — Bonjour Install Guidance**
 
