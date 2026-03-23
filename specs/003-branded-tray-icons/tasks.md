@@ -29,8 +29,8 @@ is CTest wiring, build verification, contract correction, and manual acceptance 
 
 **⚠️ CRITICAL**: CTest test must be registered before any user story can be declared CI-verified.
 
-- [ ] T006 Add `icon-validation` CTest entry in `tests/CMakeLists.txt`: `add_test(NAME icon-validation COMMAND pwsh ${PROJECT_SOURCE_DIR}/resources/icons/validate_icons.ps1)` — test must pass with current branded ICOs
-- [ ] T007 Run `cmake --build build --config Release` from repo root and confirm build succeeds with new ICOs (rc.exe must embed them without error; no linker changes required)
+- [x] T006 Add `icon-validation` CTest entry in `tests/CMakeLists.txt`: `add_test(NAME icon-validation COMMAND pwsh ${PROJECT_SOURCE_DIR}/resources/icons/validate_icons.ps1)` — test must pass with current branded ICOs
+- [x] T007 Run `cmake --build build --config Release` from repo root and confirm build succeeds with new ICOs (rc.exe must embed them without error; no linker changes required)
 
 **Checkpoint**: `ctest -R icon-validation` exits 0; Release build succeeds with all 11 ICOs embedded.
 
@@ -98,9 +98,9 @@ is CTest wiring, build verification, contract correction, and manual acceptance 
 
 **Purpose**: Contract accuracy, SC-003 build verification, roadmap update.
 
-- [ ] T022 [P] Update `specs/003-branded-tray-icons/contracts/ico-format.md`: correct file size threshold from `≥ 10 KB` to `≥ 1 KB` — the original estimate assumed uncompressed RGBA; PNG-compressed sparse artwork yields ~1.5–2 KB per file (still valid; well above the 680-byte placeholder baseline)
+- [x] T022 [P] Update `specs/003-branded-tray-icons/contracts/ico-format.md`: correct file size threshold from `≥ 10 KB` to `≥ 1 KB` — the original estimate assumed uncompressed RGBA; PNG-compressed sparse artwork yields ~1.5–2 KB per file (still valid; well above the 680-byte placeholder baseline)
 - [ ] T023 [P] SC-003: Open built `.exe` in `Resource Hacker` (or `sigcheck -i`); confirm all 11 `IDI_TRAY_*` resources are embedded with correct IDs (2001–2003, 2011–2018)
-- [ ] T024 [P] Update `specs/roadmap.md`: change 003 status from `🔧 In Progress` to `✅ Complete`
+- [x] T024 [P] Update `specs/roadmap.md`: change 003 status from `🔧 In Progress` to `✅ Complete`
 - [ ] T025 Commit T006/T007/T022/T023/T024 changes with message `feat(003): complete — CTest wiring, build verified, contract corrected`
 
 ---
