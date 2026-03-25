@@ -1,6 +1,6 @@
 # AirBeam Roadmap
 
-**Last updated**: 2026-03-22  
+**Last updated**: 2026-03-25  
 **Repository**: [drsvenkuehn/airbeam](https://github.com/drsvenkuehn/airbeam)
 
 ---
@@ -17,7 +17,7 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 | 002 | CI / Build Hardening | ✅ | ✅ | 9/9 | ✅ Complete |
 | 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
 | 004 | WinSparkle Auto-Update | ✅ | ✅ | 11/23¹ | 🔶 Partial — needs developer key gen |
-| 005 | Bonjour Install Guidance | ✅ | — | — | 🔲 Needs plan + tasks |
+| 005 | Bonjour Install Guidance | ✅ | ✅ | 27/27 | ✅ Complete |
 
 ¹ T001–T005 (key generation + RC embed) and T015–T023 (validation + gh-pages) require developer
 action; T006–T014 and T021–T022 (CI pipeline + docs) are implemented.
@@ -47,7 +47,7 @@ See [`specs/003-branded-tray-icons/tasks.md`](003-branded-tray-icons/tasks.md) T
 
 **005 — Bonjour Install Guidance**
 
-Run `/speckit.plan` then `/speckit.tasks` to generate implementation plan and tasks.
+✅ Complete (2026-03-25). URL embedded in balloon, click opens Apple download page.
 
 ---
 
