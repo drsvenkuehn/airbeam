@@ -4,7 +4,7 @@
 // Wraps Shell_NotifyIcon with four icon states and an animated connecting state
 // (150 ms timer cycling through 8 frames).  All tooltip text is loaded via
 // StringLoader at each state transition.
-enum class TrayState { Idle, Connecting, Streaming, Error };
+enum class TrayState { Idle, Connecting, Streaming, Error, BonjourMissing };
 
 class TrayIcon {
 public:

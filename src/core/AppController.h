@@ -122,4 +122,5 @@ private:
     bool reconnectWindowActive_ = false;
     int  retryCount_             = 0;
     bool wasStreaming_            = false;
+    bool lastBalloonWasBonjour_   = false;
 };

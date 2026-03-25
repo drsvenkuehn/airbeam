@@ -10,6 +10,15 @@ When AirBeam starts and `dnssd.dll` (Apple Bonjour) is not installed, it shows a
 
 ---
 
+## Clarifications
+
+### Session 2026-03-25
+
+- Q: Does the Bonjour-missing balloon fire on every launch while dnssd.dll is absent, or only once? → A: Every launch — no "already shown" flag is stored; balloon fires on every startup until Bonjour is installed.
+- Q: Is the Apple download URL hardcoded or runtime-configurable via config.json? → A: Hardcoded as a compile-time constant — the URL is stable by design (FR-002) and no user scenario requires a different value.
+
+---
+
 ## User Scenarios & Testing
 
 ### User Story 1 - First-Run With No Bonjour (Priority: P1)
@@ -63,7 +72,7 @@ Users running AirBeam in a non-English Windows locale see the Bonjour guidance n
 
 - What if Apple changes the Bonjour download URL? → The URL must be a stable Apple support article URL (e.g., `https://support.apple.com/downloads/bonjour-for-windows`), not a direct CDN link that changes with each version.
 - What if the NSIS installer is configured to bundle/auto-install Bonjour? → The balloon guidance text should still be present for cases where the user bypasses the installer bundled Bonjour option.
-- What if `BonjourLoader` loads `dnssd.dll` but the service is stopped? → This is a separate error path; the balloon text should be specific to the DLL-not-found case, not generic.
+- What if the user relaunches AirBeam while Bonjour is still absent? → The balloon fires again on every launch (FR-009); this is intentional and requires no persistent state. → This is a separate error path; the balloon text should be specific to the DLL-not-found case, not generic.
 - What if the balloon is dismissed before the user reads it? → The tray icon remains in error state; the tooltip should also mention the missing Bonjour dependency.
 
 ---
@@ -75,18 +84,22 @@ Users running AirBeam in a non-English Windows locale see the Bonjour guidance n
 - **FR-001**: `IDS_BALLOON_BONJOUR_MISSING` in `resources/locales/strings_en.rc` MUST contain the word "Bonjour" and a direct URL to the Apple Bonjour for Windows download/support page.
 - **FR-002**: The URL MUST be a stable Apple support URL (not a CDN `.pkg`/`.exe` URL that changes with each release).
 - **FR-003**: The URL MUST be verified as reachable at spec-authoring time (HTTP 200 or 301/302 to a valid Apple page).
-- **FR-004**: All 7 locale RC files (`strings_en.rc`, `strings_de.rc`, `strings_fr.rc`, `strings_es.rc`, `strings_ja.rc`, `strings_ko.rc`, `strings_zh.rc`) MUST have a non-placeholder `IDS_BALLOON_BONJOUR_MISSING` string — either translated or explicitly set to the English fallback until translation is available.
+- **FR-004**: All 7 locale RC files (`strings_en.rc`, `strings_de.rc`, `strings_fr.rc`, `strings_es.rc`, `strings_ja.rc`, `strings_ko.rc`, `strings_zh-Hans.rc`) MUST have a non-placeholder `IDS_BALLOON_BONJOUR_MISSING` string — either translated or explicitly set to the English fallback until translation is available.
 - **FR-005**: The balloon title MUST identify the application by name (e.g., "AirBeam — Bonjour Required").
 - **FR-006**: The balloon body text MUST include: (a) what is missing, (b) why it is needed, and (c) where to get it (URL).
 - **FR-007**: When the balloon is clicked (`NIN_BALLOONUSERCLICK`), AirBeam MUST open the Bonjour download URL in the default browser using `ShellExecuteW`.
 - **FR-008**: The `WM_BONJOUR_MISSING` tray tooltip (set via `Shell_NotifyIcon`) MUST also reference Bonjour so keyboard-only users who miss the balloon can still discover the issue.
 
-### Key Entities
+- **FR-009**: The Bonjour-missing balloon MUST fire on every AirBeam startup while `dnssd.dll` remains absent. No "already shown" state is persisted; each launch is treated independently.
 
-- **`resources/locales/strings_en.rc`**: English locale strings; `IDS_BALLOON_BONJOUR_MISSING` is the primary string to verify/fix.
-- **`resources/locales/strings_de.rc`, `strings_fr.rc`, etc.**: Six additional locale files needing consistent `IDS_BALLOON_BONJOUR_MISSING` entries.
-- **`src/ui/TrayIcon.cpp`** (or `AppController.cpp`): The `WM_BONJOUR_MISSING` handler that calls `Shell_NotifyIcon` with the balloon and handles `NIN_BALLOONUSERCLICK`.
-- **Apple Bonjour download URL**: `https://support.apple.com/downloads/bonjour-for-windows` (stable support article; redirects to latest installer).
+---
+
+### Referenced Files
+
+- `resources/locales/strings_en.rc` — English locale strings; `IDS_BALLOON_BONJOUR_MISSING` is the primary string to verify/fix.
+- `resources/locales/strings_de.rc`, `strings_fr.rc`, etc. — Six additional locale files needing consistent `IDS_BALLOON_BONJOUR_MISSING` entries.
+- `src/ui/TrayIcon.cpp` / `AppController.cpp` — The `WM_BONJOUR_MISSING` handler that calls `Shell_NotifyIcon` with the balloon and handles `NIN_BALLOONUSERCLICK`.
+- Apple Bonjour download URL: `https://support.apple.com/downloads/bonjour-for-windows` (stable support article; redirects to latest installer).
 
 ---
 
@@ -95,6 +108,6 @@ Users running AirBeam in a non-English Windows locale see the Bonjour guidance n
 ### Measurable Outcomes
 
 - **SC-001**: On a machine without `dnssd.dll`, AirBeam displays the Bonjour guidance balloon within 5 seconds of startup.
-- **SC-002**: The URL in the balloon resolves to a valid Apple page (HTTP 200 or 301) — verified by an automated `Invoke-WebRequest` check in CI or manually before release.
-- **SC-003**: All 7 locale `.rc` files contain a non-empty, non-placeholder `IDS_BALLOON_BONJOUR_MISSING` string.
-- **SC-004**: Clicking the balloon opens `https://support.apple.com/downloads/bonjour-for-windows` (or the configured URL) in the default browser.
+- **SC-002**: The URL in the balloon resolves to a valid Apple page (HTTP 200 or 301) — verified automatically by the `bonjour-url-check` CTest which runs in CI on every push.
+- **SC-003**: All 7 locale `.rc` files contain non-empty, non-placeholder values for all three IDS keys: `IDS_BALLOON_BONJOUR_MISSING`, `IDS_TOOLTIP_BONJOUR_MISSING`, and `IDS_BALLOON_TITLE_BONJOUR_MISSING`.
+- **SC-004**: Clicking the balloon opens `https://support.apple.com/downloads/bonjour-for-windows` in the default browser. The URL is hardcoded at compile time and is not runtime-configurable.

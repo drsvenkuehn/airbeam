@@ -107,3 +107,23 @@ if(PWSH_EXECUTABLE)
     )
     set_tests_properties(icon-validation PROPERTIES LABELS "assets")
 endif()
+
+# ── Bonjour URL presence check ────────────────────────────────────────────────
+# Verifies that all 7 locale RC files contain the Apple Bonjour download URL
+# in the IDS_BALLOON_BONJOUR_MISSING string, and that resource_ids.h declares
+# the BONJOUR_DOWNLOAD_URL constant.  Labeled "unit" so it runs in the default
+# CI preset (-L unit).
+if(PWSH_EXECUTABLE)
+    add_test(
+        NAME    bonjour-url-check
+        COMMAND "${PWSH_EXECUTABLE}" -NoProfile -Command
+                "& { $url = 'https://support.apple.com/downloads/bonjour-for-windows'; \
+$files = Get-ChildItem '${CMAKE_SOURCE_DIR}/resources/locales/*.rc'; \
+$missing = $files | Where-Object { -not (Select-String -Quiet -SimpleMatch $url -Path $_.FullName) }; \
+if ($missing) { Write-Error ('URL missing in: ' + ($missing.Name -join ', ')); exit 1 } \
+if (-not (Select-String -Quiet -SimpleMatch 'BONJOUR_DOWNLOAD_URL' '${CMAKE_SOURCE_DIR}/resources/resource_ids.h')) { Write-Error 'BONJOUR_DOWNLOAD_URL missing from resource_ids.h'; exit 1 } \
+Write-Host 'bonjour-url-check passed'; exit 0 }"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+    set_tests_properties(bonjour-url-check PROPERTIES LABELS "unit")
+endif()

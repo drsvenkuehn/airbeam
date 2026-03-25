@@ -8,13 +8,15 @@ BEGIN
     IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Connecting\x2026"
     IDS_TOOLTIP_STREAMING          "AirBeam \x2014 Streaming"
     IDS_TOOLTIP_ERROR              "AirBeam \x2014 Error"
+    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam \x2014 Bonjour Not Found"
 
-    IDS_BALLOON_BONJOUR_MISSING    "Bonjour is not installed. AirPlay discovery requires Bonjour. Click to install."
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour is not installed. AirPlay speaker discovery requires Bonjour. Visit: https://support.apple.com/downloads/bonjour-for-windows"
     IDS_BALLOON_CONNECTED          "Connected to %s"
     IDS_BALLOON_DISCONNECTED       "Disconnected from %s"
     IDS_BALLOON_CONNECTION_FAILED  "Connection to %s failed"
     IDS_BALLOON_CONFIG_RESET       "Settings have been reset to defaults."
     IDS_BALLOON_UPDATE_REJECTED    "Update rejected: signature verification failed."
+    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam \x2014 Bonjour Required"
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 not supported by this receiver"
     IDS_MENU_VOLUME                "Volume"

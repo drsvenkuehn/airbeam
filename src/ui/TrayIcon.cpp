@@ -19,9 +19,10 @@ static HICON LoadTrayIcon(HINSTANCE hInst, TrayState state)
     UINT resId = IDI_TRAY_IDLE;
     switch (state) {
         case TrayState::Streaming:  resId = IDI_TRAY_STREAMING; break;
-        case TrayState::Error:      resId = IDI_TRAY_ERROR;     break;
-        case TrayState::Connecting: resId = IDI_TRAY_CONN_001;  break;
-        default:                    resId = IDI_TRAY_IDLE;      break;
+        case TrayState::Error:          resId = IDI_TRAY_ERROR;     break;
+        case TrayState::BonjourMissing: resId = IDI_TRAY_ERROR;     break;
+        case TrayState::Connecting:     resId = IDI_TRAY_CONN_001;  break;
+        default:                        resId = IDI_TRAY_IDLE;      break;
     }
     HICON hIcon = static_cast<HICON>(
         LoadImageW(hInst, MAKEINTRESOURCEW(resId), IMAGE_ICON, 16, 16, LR_SHARED));
@@ -29,8 +30,9 @@ static HICON LoadTrayIcon(HINSTANCE hInst, TrayState state)
         // Fallback: system stock icons when resources are unavailable
         switch (state) {
             case TrayState::Streaming: return LoadIconW(nullptr, IDI_INFORMATION);
-            case TrayState::Error:     return LoadIconW(nullptr, IDI_ERROR);
-            default:                   return LoadIconW(nullptr, IDI_APPLICATION);
+            case TrayState::Error:          return LoadIconW(nullptr, IDI_ERROR);
+            case TrayState::BonjourMissing: return LoadIconW(nullptr, IDI_ERROR);
+            default:                        return LoadIconW(nullptr, IDI_APPLICATION);
         }
     }
     return hIcon;
@@ -105,7 +107,8 @@ void TrayIcon::SetState(TrayState state, const wchar_t* deviceName)
         case TrayState::Idle:       tipId = IDS_TOOLTIP_IDLE;       break;
         case TrayState::Connecting: tipId = IDS_TOOLTIP_CONNECTING;  break;
         case TrayState::Streaming:  tipId = IDS_TOOLTIP_STREAMING;   break;
-        case TrayState::Error:      tipId = IDS_TOOLTIP_ERROR;       break;
+        case TrayState::Error:          tipId = IDS_TOOLTIP_ERROR;            break;
+        case TrayState::BonjourMissing: tipId = IDS_TOOLTIP_BONJOUR_MISSING; break;
     }
 
     std::wstring tip = StringLoader::Load(tipId);

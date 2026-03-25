@@ -217,6 +217,13 @@ void AppController::HandleTrayCallback(LPARAM lParam) {
         ShowTrayMenu();
         break;
 
+    case NIN_BALLOONUSERCLICK:
+        if (lastBalloonWasBonjour_) {
+            lastBalloonWasBonjour_ = false;
+            ShellExecuteW(nullptr, L"open", BONJOUR_DOWNLOAD_URL, nullptr, nullptr, SW_SHOWNORMAL);
+        }
+        break;
+
     default:
         break;
     }
@@ -294,7 +301,9 @@ void AppController::HandleRaopFailed(LPARAM /*lParam*/) {
 }
 
 void AppController::HandleBonjourMissing() {
-    balloonNotify_.ShowWarning(IDS_BALLOON_BONJOUR_MISSING,
+    lastBalloonWasBonjour_ = true;
+    trayIcon_.SetState(TrayState::BonjourMissing);
+    balloonNotify_.ShowWarning(IDS_BALLOON_TITLE_BONJOUR_MISSING,
                                IDS_BALLOON_BONJOUR_MISSING);
 }
 

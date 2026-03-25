@@ -5,6 +5,7 @@
 #define IDS_TOOLTIP_CONNECTING        1002
 #define IDS_TOOLTIP_STREAMING         1003
 #define IDS_TOOLTIP_ERROR             1004
+#define IDS_TOOLTIP_BONJOUR_MISSING   1005
 
 // ── Balloon notification strings ─────────────────────────────────────────────
 #define IDS_BALLOON_BONJOUR_MISSING   1010
@@ -13,6 +14,7 @@
 #define IDS_BALLOON_CONNECTION_FAILED 1013
 #define IDS_BALLOON_CONFIG_RESET      1014
 #define IDS_BALLOON_UPDATE_REJECTED   1015
+#define IDS_BALLOON_TITLE_BONJOUR_MISSING 1016
 
 // ── Menu labels ──────────────────────────────────────────────────────────────
 #define IDS_LABEL_AIRPLAY2_UNSUPPORTED 1020
@@ -26,6 +28,12 @@
 
 // ── WinSparkle Ed25519 public key ─────────────────────────────────────────────
 #define IDS_SPARKLE_PUBKEY            1030
+
+// ── Compile-time URL constants ─────────────────────────────────────────────
+#ifdef __cplusplus
+constexpr wchar_t BONJOUR_DOWNLOAD_URL[] =
+    L"https://support.apple.com/downloads/bonjour-for-windows";
+#endif
 
 // ── Tray icon resources ───────────────────────────────────────────────────────
 #define IDI_TRAY_IDLE                 2001

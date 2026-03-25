@@ -8,13 +8,15 @@ BEGIN
     IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Conectando\x2026"
     IDS_TOOLTIP_STREAMING          "AirBeam \x2014 Transmitiendo"
     IDS_TOOLTIP_ERROR              "AirBeam \x2014 Error"
+    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam \x2014 Bonjour Not Found" // TODO(i18n): translate
 
-    IDS_BALLOON_BONJOUR_MISSING    "Bonjour no est\xe1 instalado. La detecci\xf3n de AirPlay requiere Bonjour. Haga clic para instalar."
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour no est\xe1 instalado. La detecci\xf3n de AirPlay requiere Bonjour. Haga clic para instalar. Visite: https://support.apple.com/downloads/bonjour-for-windows"
     IDS_BALLOON_CONNECTED          "Conectado a %s"
     IDS_BALLOON_DISCONNECTED       "Desconectado de %s"
     IDS_BALLOON_CONNECTION_FAILED  "Error al conectar a %s"
     IDS_BALLOON_CONFIG_RESET       "La configuraci\xf3n se ha restablecido a los valores predeterminados."
     IDS_BALLOON_UPDATE_REJECTED    "Actualizaci\xf3n rechazada: fallo en la verificaci\xf3n de firma."
+    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam \x2014 Bonjour Required" // TODO(i18n): translate
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 no es compatible con este receptor"
     IDS_MENU_VOLUME                "Volumen"

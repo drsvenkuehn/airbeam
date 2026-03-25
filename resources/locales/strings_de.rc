@@ -8,13 +8,15 @@ BEGIN
     IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Verbinden\x2026"
     IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \xdc\x62ertragung l\xe4uft"
     IDS_TOOLTIP_ERROR              "AirBeam \x2014 Fehler"
+    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam \x2014 Bonjour Not Found" // TODO(i18n): translate
 
-    IDS_BALLOON_BONJOUR_MISSING    "Bonjour ist nicht installiert. AirPlay-Erkennung ben\xf6tigt Bonjour. Klicken, um zu installieren."
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour ist nicht installiert. AirPlay-Erkennung ben\xf6tigt Bonjour. Klicken, um zu installieren. Besuchen Sie: https://support.apple.com/downloads/bonjour-for-windows"
     IDS_BALLOON_CONNECTED          "Verbunden mit %s"
     IDS_BALLOON_DISCONNECTED       "Verbindung zu %s getrennt"
     IDS_BALLOON_CONNECTION_FAILED  "Verbindung zu %s fehlgeschlagen"
     IDS_BALLOON_CONFIG_RESET       "Einstellungen wurden auf Standardwerte zur\xfcckgesetzt."
     IDS_BALLOON_UPDATE_REJECTED    "Update abgelehnt: Signaturpr\xfcfung fehlgeschlagen."
+    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam \x2014 Bonjour erforderlich" // TODO(i18n): translate
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 wird von diesem Empf\xe4nger nicht unterst\xfctzt"
     IDS_MENU_VOLUME                "Lautst\xe4rke"

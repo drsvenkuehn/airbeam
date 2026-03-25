@@ -8,13 +8,15 @@ BEGIN
     IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 \x63a5\x7d9a\x4e2d\x2026"
     IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \x30b9\x30c8\x30ea\x30fc\x30df\x30f3\x30b0\x4e2d"
     IDS_TOOLTIP_ERROR              "AirBeam \x2014 \x30a8\x30e9\x30fc"
+    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam \x2014 Bonjour Not Found" // TODO(i18n): translate
 
-    IDS_BALLOON_BONJOUR_MISSING    "Bonjour \x304c\x30a4\x30f3\x30b9\x30c8\x30fc\x30eb\x3055\x308c\x3066\x3044\x307e\x305b\x3093\x3002AirPlay \x306e\x30c7\x30d0\x30a4\x30b9\x691c\x7d22\x306b\x306f Bonjour \x304c\x5fc5\x8981\x3067\x3059\x3002\x30af\x30ea\x30c3\x30af\x3057\x3066\x30a4\x30f3\x30b9\x30c8\x30fc\x30eb\x3002"
+    IDS_BALLOON_BONJOUR_MISSING    "Bonjour \x304c\x30a4\x30f3\x30b9\x30c8\x30fc\x30eb\x3055\x308c\x3066\x3044\x307e\x305b\x3093\x3002AirPlay \x306e\x30c7\x30d0\x30a4\x30b9\x691c\x7d22\x306b\x306f Bonjour \x304c\x5fc5\x8981\x3067\x3059\x3002\x30af\x30ea\x30c3\x30af\x3057\x3066\x30a4\x30f3\x30b9\x30c8\x30fc\x30eb\x3002 URL\uff1ahttps://support.apple.com/downloads/bonjour-for-windows"
     IDS_BALLOON_CONNECTED          "%s \x306b\x63a5\x7d9a\x3057\x307e\x3057\x305f"
     IDS_BALLOON_DISCONNECTED       "%s \x304b\x3089\x5207\x65ad\x3057\x307e\x3057\x305f"
     IDS_BALLOON_CONNECTION_FAILED  "%s \x3078\x306e\x63a5\x7d9a\x306b\x5931\x6557\x3057\x307e\x3057\x305f"
     IDS_BALLOON_CONFIG_RESET       "\x8a2d\x5b9a\x304c\x30c7\x30d5\x30a9\x30eb\x30c8\x5024\x306b\x30ea\x30bb\x30c3\x30c8\x3055\x308c\x307e\x3057\x305f\x3002"
     IDS_BALLOON_UPDATE_REJECTED    "\x30a2\x30c3\x30d7\x30c7\x30fc\x30c8\x304c\x62d2\x5426\x3055\x308c\x307e\x3057\x305f\x3002\x7f72\x540d\x691c\x8a3c\x306b\x5931\x6557\x3057\x307e\x3057\x305f\x3002"
+    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam \x2014 Bonjour Required" // TODO(i18n): translate
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "\x3053\x306e\x30ec\x30b7\x30fc\x30d0\x30fc\x306f AirPlay 2 \x306b\x5bfe\x5fdc\x3057\x3066\x3044\x307e\x305b\x3093"
     IDS_MENU_VOLUME                "\x97f3\x91cf"
