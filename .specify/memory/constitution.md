@@ -62,6 +62,23 @@ kernel-mode code and no audio driver development are in scope for any version.
 **Rationale**: A thin, framework-free UI layer minimises binary size, eliminates extra runtime
 redistribution, and keeps the application self-contained on stock Windows 10/11.
 
+### III-A. Visual Color Palette (NON-NEGOTIABLE)
+
+The AirBeam UI color palette is strictly:
+
+- **Gray `#9E9E9E`** — idle / inactive state
+- **Blue `#2196F3`** — active states: connecting animation and streaming
+- **Red `#F44336`** — error states
+- **White** — icon foreground detail on colored backgrounds
+
+**Green is explicitly prohibited** in all tray icons, balloon notifications, menus, and any
+other UI surface. No new green color values may be introduced in `gen_icons.ps1`, SVG sources,
+or any future icon/illustration asset.
+
+**Rationale**: A monochromatic blue-based active palette provides consistent, accessible
+signaling across Windows 10/11 dark and light taskbar themes without relying on green, which
+conflicts with some system notification colors and reduces color-blind accessibility.
+
 ### IV. Test-Verified Correctness
 
 The following tests are MANDATORY before any release build is tagged:

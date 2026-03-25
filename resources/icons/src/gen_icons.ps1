@@ -19,9 +19,8 @@ Add-Type -AssemblyName System.Drawing
 # Color palette
 # ---------------------------------------------------------------------------
 $Gray  = [System.Drawing.Color]::FromArgb(255, 158, 158, 158)  # #9E9E9E idle
-$Green = [System.Drawing.Color]::FromArgb(255, 76,  175, 80)   # #4CAF50 streaming
+$Blue  = [System.Drawing.Color]::FromArgb(255, 33,  150, 243)  # #2196F3 streaming + connecting
 $Red   = [System.Drawing.Color]::FromArgb(255, 244, 67,  54)   # #F44336 error
-$Blue  = [System.Drawing.Color]::FromArgb(255, 33,  150, 243)  # #2196F3 connecting
 $White = [System.Drawing.Color]::White
 
 # ---------------------------------------------------------------------------
@@ -188,8 +187,8 @@ $drawIdle = {
 $drawStreaming = {
     param($g, $size)
     $s = $size / 64.0
-    Draw-SpeakerFilled $g $s $Green
-    Draw-Arcs          $g $s $Green $true
+    Draw-SpeakerFilled $g $s $Blue
+    Draw-Arcs          $g $s $Blue $true
 }
 
 $drawError = {
