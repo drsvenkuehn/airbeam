@@ -62,8 +62,8 @@
 - [x] T017 [US1] Enable GitHub Pages on `drsvenkuehn/airbeam`: `Settings → Pages → Source: Deploy from branch → gh-pages / (root)` — confirm the Pages URL resolves to `https://drsvenkuehn.github.io/airbeam/appcast.xml` (FR-009)
 - [x] T018 [US1] Validate SC-001 locally: write `$env:SPARKLE_PRIVATE_KEY` to a key file, sign with `winsparkle-tool.exe sign --private-key-file <keyfile> build\Debug\AirBeam.exe`, then run `winsparkle-tool.exe verify --public-key <BASE64_PUBKEY> --signature <SIG> build\Debug\AirBeam.exe` and confirm exit code `0`
 - [x] T019 [US1] Validate SC-005: confirm `resources/sparkle_pubkey.txt` and all 7 RC files contain no placeholder string; check key length ≥ 43 chars: `(Select-String "TODO_REPLACE" resources\locales\strings_en.rc) -eq $null`
-- [ ] T020 [US1] Validate SC-003 (tamper test): corrupt the `sparkle:edSignature` in a local copy of `appcast.xml`; point WinSparkle to that URL; confirm WinSparkle rejects the update with an error (does NOT install) — manual test, document result
-- [ ] T023 [US1] Validate SC-002 (happy-path update dialog): with a build containing the real Ed25519 public key embedded, craft a minimal `appcast.xml` pointing to a locally signed test installer (signed with T018's private key); serve it at the `AIRBEAM_APPCAST_URL` or via a local HTTP server override; confirm WinSparkle shows the update dialog and proceeds past the certificate/signature check without error — manual test, document result
+- [x] T020 [US1] Validate SC-003 (tamper test): corrupt the `sparkle:edSignature` in a local copy of `appcast.xml`; point WinSparkle to that URL; confirm WinSparkle rejects the update with an error (does NOT install) — manual test, document result
+- [x] T023 [US1] Validate SC-002 (happy-path update dialog): with a build containing the real Ed25519 public key embedded, craft a minimal `appcast.xml` pointing to a locally signed test installer (signed with T018's private key); serve it at the `AIRBEAM_APPCAST_URL` or via a local HTTP server override; confirm WinSparkle shows the update dialog and proceeds past the certificate/signature check without error — manual test, document result
 
 ---
 

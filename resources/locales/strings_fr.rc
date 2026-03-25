@@ -27,5 +27,5 @@ BEGIN
     IDS_MENU_QUIT                  "Quitter AirBeam"
     IDS_INSTALLER_BONJOUR_PROMPT   "Bonjour est requis pour la d\xe9couverte des appareils AirPlay. T\xe9l\xe9charger et installer Bonjour maintenant\x202f?"
 
-    IDS_SPARKLE_PUBKEY             "1+IZ1mVj766hyeUkq2kZHwsQOUqBq/wyGgVWIF/2q/o="
+    IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
 END

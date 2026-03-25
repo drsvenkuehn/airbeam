@@ -9,5 +9,5 @@
 #
 # Current value: placeholder (must be replaced before first release)
 # TODO: Replace "TODO_REPLACE_WITH_ED25519_PUBLIC_KEY" in all strings_*.rc files
-Current value: 1+IZ1mVj766hyeUkq2kZHwsQOUqBq/wyGgVWIF/2q/o=
+Current value: 9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s=
 Generated: 2026-03-23

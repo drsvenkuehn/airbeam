@@ -27,5 +27,5 @@ BEGIN
     IDS_MENU_QUIT                  "\x9000\x51fa AirBeam"
     IDS_INSTALLER_BONJOUR_PROMPT   "AirPlay \x8bbe\x5907\x53d1\x73b0\x9700\x8981 Bonjour\x3002\x662f\x5426\x73b0\x5728\x4e0b\x8f7d\x5e76\x5b89\x88c5 Bonjour\uff1f"
 
-    IDS_SPARKLE_PUBKEY             "1+IZ1mVj766hyeUkq2kZHwsQOUqBq/wyGgVWIF/2q/o="
+    IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
 END

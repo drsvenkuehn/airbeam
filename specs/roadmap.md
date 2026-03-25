@@ -16,19 +16,16 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 | 001 | AirPlay Audio Sender | ✅ | ✅ | 101/101 | ✅ Complete |
 | 002 | CI / Build Hardening | ✅ | ✅ | 9/9 | ✅ Complete |
 | 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
-| 004 | WinSparkle Auto-Update | ✅ | ✅ | 21/23¹ | 🔶 Partial — 2 manual validation tests remain |
+| 004 | WinSparkle Auto-Update | ✅ | ✅ | 23/23 | ✅ Complete |
 | 005 | Bonjour Install Guidance | ✅ | ✅ | 27/27 | ✅ Complete |
 
-¹ T020 and T023 are manual sign-off tests requiring a live WinSparkle build + local appcast server.
+¹ All 23 tasks complete. Key re-keyed to local pair on 2026-03-25; update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with contents of `winsparkle-private.from-env.key`.
 
 ### v1.0 Remaining Work
 
-**004 — WinSparkle Auto-Update (2 manual tests remaining)**
+**004 — WinSparkle Auto-Update**
 
-T020 and T023 require a running WinSparkle build and can only be done by you:
-
-- **T020** (tamper test): corrupt `sparkle:edSignature` in a local `appcast.xml` copy → confirm WinSparkle rejects the update
-- **T023** (happy-path dialog): craft a minimal signed appcast → serve locally → confirm WinSparkle shows the update dialog
+✅ Complete (2026-03-25). Key re-keyed to local pair (`9r51oz...`). Update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with the contents of `winsparkle-private.from-env.key`.
 
 **003 — Branded Tray Icons (manual review pending)**
 
