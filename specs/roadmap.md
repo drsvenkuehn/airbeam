@@ -16,24 +16,19 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 | 001 | AirPlay Audio Sender | ✅ | ✅ | 101/101 | ✅ Complete |
 | 002 | CI / Build Hardening | ✅ | ✅ | 9/9 | ✅ Complete |
 | 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
-| 004 | WinSparkle Auto-Update | ✅ | ✅ | 11/23¹ | 🔶 Partial — needs developer key gen |
+| 004 | WinSparkle Auto-Update | ✅ | ✅ | 21/23¹ | 🔶 Partial — 2 manual validation tests remain |
 | 005 | Bonjour Install Guidance | ✅ | ✅ | 27/27 | ✅ Complete |
 
-¹ T001–T005 (key generation + RC embed) and T015–T023 (validation + gh-pages) require developer
-action; T006–T014 and T021–T022 (CI pipeline + docs) are implemented.
+¹ T020 and T023 are manual sign-off tests requiring a live WinSparkle build + local appcast server.
 
 ### v1.0 Remaining Work
 
-**004 — WinSparkle Auto-Update (developer actions)**
+**004 — WinSparkle Auto-Update (2 manual tests remaining)**
 
-1. Download WinSparkle 0.9.2 → run `winsparkle-tool generate-key --file <keyfile>` and `winsparkle-tool public-key --private-key-file <keyfile>`
-2. Add `SPARKLE_PRIVATE_KEY` secret to GitHub Actions
-3. Replace `TODO_REPLACE_WITH_ED25519_PUBLIC_KEY` in all 7 `resources/locales/strings_*.rc`
-4. Update `resources/sparkle_pubkey.txt`
-5. Create `gh-pages` branch; enable GitHub Pages in repo settings
-6. Validate SC-001 through SC-005 (see `specs/004-winsparkle-autoupdate/tasks.md`)
+T020 and T023 require a running WinSparkle build and can only be done by you:
 
-See [`specs/004-winsparkle-autoupdate/quickstart.md`](004-winsparkle-autoupdate/quickstart.md) for the step-by-step procedure.
+- **T020** (tamper test): corrupt `sparkle:edSignature` in a local `appcast.xml` copy → confirm WinSparkle rejects the update
+- **T023** (happy-path dialog): craft a minimal signed appcast → serve locally → confirm WinSparkle shows the update dialog
 
 **003 — Branded Tray Icons (manual review pending)**
 
