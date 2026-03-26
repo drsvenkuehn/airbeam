@@ -101,14 +101,15 @@ std::string RsaKeyWrap::Wrap(const uint8_t key[16])
     }
 
     // Determine output size
+    BCRYPT_OAEP_PADDING_INFO oaepInfo = { BCRYPT_SHA1_ALGORITHM };
     ULONG cbCipher = 0;
     status = BCryptEncrypt(
         hKey,
         const_cast<PUCHAR>(key), 16,
-        nullptr, nullptr, 0,
+        &oaepInfo, nullptr, 0,
         nullptr, 0,
         &cbCipher,
-        BCRYPT_PAD_PKCS1);
+        BCRYPT_PAD_OAEP);
     if (!NT_SUCCESS(status)) {
         BCryptDestroyKey(hKey);
         BCryptCloseAlgorithmProvider(hAlg, 0);
@@ -120,10 +121,10 @@ std::string RsaKeyWrap::Wrap(const uint8_t key[16])
     status = BCryptEncrypt(
         hKey,
         const_cast<PUCHAR>(key), 16,
-        nullptr, nullptr, 0,
+        &oaepInfo, nullptr, 0,
         ciphertext.data(), cbCipher,
         &cbResult,
-        BCRYPT_PAD_PKCS1);
+        BCRYPT_PAD_OAEP);
 
     BCryptDestroyKey(hKey);
     BCryptCloseAlgorithmProvider(hAlg, 0);

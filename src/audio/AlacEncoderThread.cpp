@@ -160,7 +160,10 @@ void AlacEncoderThread::ThreadProc()
         }
 
         // ── 1. ALAC encode ────────────────────────────────────────────────────
-        int32_t ioBytes = static_cast<int32_t>(sizeof(alacBuf));
+        // ALACEncoder::Encode uses *ioBytes as the PCM INPUT size (bytes), then
+        // overwrites it with the encoded OUTPUT size on return.
+        // Input: 352 frames × 2 channels × 2 bytes = 1408 bytes.
+        int32_t ioBytes = 352 * 2 * 2;
         int32_t encResult = encoder->Encode(
             inFmt, outFmt,
             reinterpret_cast<uint8_t*>(frame.samples),
