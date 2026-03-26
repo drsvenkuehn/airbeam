@@ -78,3 +78,7 @@ installer/*.exe
 installer/*.msi
 *.zip
 *.nupkg
+
+# Bonjour Print Services MSI — fetched at build time by installer/deps/fetch-bonjour.ps1
+# Run: pwsh installer/deps/fetch-bonjour.ps1 -OutputDir installer/deps
+installer/deps/BonjourPSSetup.exe

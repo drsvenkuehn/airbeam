@@ -17,9 +17,8 @@ RequestExecutionLevel admin
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+!insertmacro MUI_PAGE_LICENSE "..\installer\licenses\combined-license.txt"
 !insertmacro MUI_PAGE_DIRECTORY
-Page custom BonjourPage BonjourPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -28,30 +27,27 @@ Page custom BonjourPage BonjourPageLeave
 
 !insertmacro MUI_LANGUAGE "English"
 
-; ── Bonjour detection page ───────────────────────────────────────────────────
-Var BonjourMissing
-
-Function BonjourPage
-    ; Check for dnssd.dll via registry
-    ClearErrors
-    ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Services\Bonjour Service" "ImagePath"
-    ${If} ${Errors}
-        StrCpy $BonjourMissing "1"
-        nsDialogs::Create 1018
-        Pop $Dialog
-        ${NSD_CreateLabel} 0 0 100% 40u "Bonjour (required for speaker discovery) is not installed. Download it from support.apple.com/downloads/bonjour-for-windows and install it, then click Next."
-        Pop $0
-        nsDialogs::Show
-    ${EndIf}
-FunctionEnd
-
-Function BonjourPageLeave
-FunctionEnd
-
 ; ── Install section ──────────────────────────────────────────────────────────
 Section "AirBeam" SecMain
     SectionIn RO
     SetOutPath "$INSTDIR"
+
+    ; ── Bonjour detection + silent install ───────────────────────────────────
+    ; Skip if Bonjour Service is already registered in the SCM registry key.
+    ClearErrors
+    ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Services\Bonjour Service" "ImagePath"
+    ${If} ${Errors}
+        ; Bonjour not present — extract and run silent installer
+        SetOutPath "$PLUGINSDIR"
+        File "..\installer\deps\BonjourPSSetup.exe"
+        ExecWait '"$PLUGINSDIR\BonjourPSSetup.exe" /quiet /norestart' $0
+        ${If} $0 != 0
+            MessageBox MB_OK|MB_ICONSTOP \
+                "Bonjour installation failed (exit code $0). AirBeam requires Bonjour for speaker discovery.$\n$\nPlease install Bonjour manually from:$\nhttps://support.apple.com/downloads/bonjour-for-windows$\n$\nSetup will now exit."
+            Abort
+        ${EndIf}
+        SetOutPath "$INSTDIR"
+    ${EndIf}
 
     File "..\build\Release\AirBeam.exe"
     File "..\WinSparkle.dll"

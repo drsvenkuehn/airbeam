@@ -127,3 +127,24 @@ Write-Host 'bonjour-url-check passed'; exit 0 }"
     )
     set_tests_properties(bonjour-url-check PROPERTIES LABELS "unit")
 endif()
+
+# ── Bonjour fetch smoke test ──────────────────────────────────────────────────
+# Runs fetch-bonjour.ps1 against a temp directory and verifies:
+#   1. Exit code 0
+#   2. BonjourPSSetup.exe is present in the temp dir
+#   3. SHA-256 matches the pinned value in fetch-bonjour.ps1
+# Labeled "unit" so it runs in the default CI preset (-L unit).
+# Requires internet access on the build agent (standard on windows-latest runners).
+if(PWSH_EXECUTABLE)
+    add_test(
+        NAME    bonjour-fetch-smoke
+        COMMAND "${PWSH_EXECUTABLE}" -NoProfile -ExecutionPolicy Bypass
+                -File "${CMAKE_SOURCE_DIR}/installer/deps/fetch-bonjour.ps1"
+                -OutputDir "${CMAKE_BINARY_DIR}/bonjour-fetch-smoke-tmp"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+    set_tests_properties(bonjour-fetch-smoke PROPERTIES
+        LABELS "unit"
+        PASS_REGULAR_EXPRESSION "hash-verified|Hash verified OK"
+    )
+endif()
