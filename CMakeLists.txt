@@ -197,6 +197,27 @@ if(AIRBEAM_USE_RESAMPLER)
     target_link_libraries(AirBeam PRIVATE samplerate)
 endif()
 
+# ── Bonjour Print Services MSI — fetch and verify at build time ──────────────
+# Downloads BonjourPSSetup.exe from the pinned Apple CDN URL, verifies SHA-256,
+# and caches it at installer/deps/BonjourPSSetup.exe (gitignored).
+# Required by the NSIS installer script at makensis time.
+find_program(POWERSHELL_PROG NAMES pwsh powershell REQUIRED
+    DOC "PowerShell 7+ or Windows PowerShell executable")
+
+add_custom_command(
+    OUTPUT  "${CMAKE_SOURCE_DIR}/installer/deps/BonjourPSSetup.exe"
+    COMMAND "${POWERSHELL_PROG}" -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_SOURCE_DIR}/installer/deps/fetch-bonjour.ps1"
+            -OutputDir "${CMAKE_SOURCE_DIR}/installer/deps"
+    COMMENT "Fetching and verifying Bonjour Print Services MSI"
+    VERBATIM
+)
+
+add_custom_target(fetch-bonjour ALL
+    DEPENDS "${CMAKE_SOURCE_DIR}/installer/deps/BonjourPSSetup.exe"
+    COMMENT "Bonjour MSI ready"
+)
+
 # ── Locale key-sync validation target ───────────────────────────────────────
 find_program(POWERSHELL_EXE powershell.exe)
 if(POWERSHELL_EXE)

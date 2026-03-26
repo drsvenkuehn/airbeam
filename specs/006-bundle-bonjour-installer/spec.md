@@ -2,8 +2,22 @@
 
 **Feature Branch**: `006-bundle-bonjour-installer`
 **Created**: 2026-03-25
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "Bundle Bonjour MSI in the AirBeam NSIS installer so that when Bonjour is missing, the installer silently installs the bundled Bonjour Print Services MSI automatically, with Apple's Bonjour license shown on the installer license page for compliance."
+
+## Clarifications
+
+### Session 2026-03-25
+
+- Q: How is the Bonjour MSI acquired for build (CI and local)? → A: Fetch from a pinned Apple URL with SHA-256 checksum verification via a CMake custom command script; the same script runs for both local and CI builds. Binary is not committed to the repository.
+- Q: Detection logic — skip if any Bonjour present, or version-compare and upgrade if older? → A: Skip if any Bonjour is present (presence-based detection, never touch an existing installation).
+- Q: Uninstall behavior — remove Bonjour when AirBeam is uninstalled? → A: Leave Bonjour installed; other apps (iTunes, iCloud) may depend on it.
+- Q: Which Apple package to bundle? → A: Bonjour Print Services (`BonjourPSSetup.exe`) — the redistributable package Apple publishes.
+
+### Session 2026-03-26
+
+- Q: How should both licenses be presented on the installer license page? → A: Single combined `.txt` file with clearly labeled section headers (`=== AirBeam MIT License ===` / `=== Apple Bonjour SDK License ===`) on the standard MUI license page.
+- Q: What does the user see when Bonjour installation fails during the AirBeam install? → A: NSIS `MessageBox` showing a human-readable error with the exit code (e.g. "Bonjour installation failed — AirBeam cannot continue. Error code: $0") before `Abort` is called and files are rolled back.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -78,16 +92,18 @@ displayed and the installer cannot proceed without explicit acceptance.
 ### Edge Cases
 
 - What if Bonjour installation fails mid-installer (e.g., disk full, permissions error)?
-  The AirBeam install must roll back cleanly; user sees a clear error message; no partial files remain.
-- What if the bundled Bonjour MSI is corrupted in the AirBeam installer package?
-  The installer must detect the failure and abort with a clear error, not silently continue
-  in a broken Bonjour-less state.
+  An NSIS `MessageBox` MUST display a human-readable error including the MSI exit code before
+  `Abort` is called; the AirBeam install rolls back cleanly; no partial files remain.
+- What if the bundled Bonjour MSI fails its SHA-256 checksum verification at build time?
+  The CMake build step must fail with a clear error before any installer is produced.
 - What if a 32-bit Bonjour is already installed on a 64-bit OS?
-  If any Bonjour service is registered (`Bonjour Service` registry key present), skip re-install
-  regardless of bitness.
+  If the `Bonjour Service` registry key is present, skip re-install regardless of bitness.
 - What if UAC elevation was granted for AirBeam but Bonjour's MSI would normally request a
   second elevation?
   The bundled MSI must be run with the already-elevated token so no second UAC prompt appears.
+- What if the Apple download URL is unreachable during a local or CI build?
+  The CMake custom command must fail with a clear error message identifying the URL and instructing
+  the developer to verify connectivity or update the pinned URL.
 
 ## Requirements *(mandatory)*
 
@@ -100,23 +116,30 @@ displayed and the installer cannot proceed without explicit acceptance.
 - **FR-003**: When Bonjour is absent, the installer MUST install Bonjour silently (no
   secondary wizard, no second UAC prompt) using the elevated token already granted to the
   AirBeam installer process.
-- **FR-004**: When Bonjour is already installed, the installer MUST skip the Bonjour
-  installation step entirely and MUST NOT modify the existing Bonjour installation.
-- **FR-005**: The installer license page MUST display the Apple Bonjour SDK redistribution
-  license in addition to the AirBeam MIT license, with both clearly labeled.
-- **FR-006**: The installer MUST roll back cleanly (remove all installed AirBeam files) if
-  the Bonjour installation step fails for any reason.
-- **FR-007**: The bundled Bonjour MSI MUST be the official Apple Bonjour Print Services
-  package for Windows (x64), sourced directly from Apple and version-pinned.
-- **FR-008**: The installer MUST NOT install Bonjour if a newer version is already present
-  on the machine.
+- **FR-004**: When Bonjour is already installed (registry key `HKLM\SYSTEM\CurrentControlSet\Services\Bonjour Service`
+  present), the installer MUST skip the Bonjour installation step entirely and MUST NOT modify
+  the existing Bonjour installation, regardless of the installed version or bitness.
+- **FR-005**: The installer license page MUST display both the AirBeam MIT license and the Apple
+  Bonjour SDK redistribution license in a single combined `.txt` file, with each license preceded
+  by a clearly labeled section header (`=== AirBeam MIT License ===` and
+  `=== Apple Bonjour SDK License ===`), shown on the standard MUI license page.
+- **FR-006**: If the Bonjour installation step fails for any reason, the installer MUST display an
+  NSIS `MessageBox` with a human-readable error message including the MSI exit code, then call
+  `Abort` to roll back all installed AirBeam files cleanly.
+- **FR-007**: The Bonjour MSI MUST be fetched from a pinned Apple URL with SHA-256 checksum
+  verification at build time via a CMake custom command script. The binary MUST NOT be committed
+  to the repository. The same script MUST work for both local developer builds and CI builds.
+- **FR-008**: The CMake fetch script MUST fail the build with a descriptive error if the
+  downloaded file's SHA-256 does not match the pinned value.
 
 ### Key Entities
 
-- **Bundled Bonjour MSI**: The Apple Bonjour Print Services installer binary embedded inside
-  the AirBeam NSIS installer. Attributes: version number, file checksum, associated license text.
+- **Bonjour MSI Fetch Script**: A CMake custom command script that downloads the Apple Bonjour
+  Print Services MSI from a pinned URL, verifies its SHA-256 checksum, and places it at
+  `installer/deps/BonjourPSSetup.exe`. Attributes: pinned URL, expected SHA-256 hash, Bonjour
+  version number.
 - **Bonjour Detection Result**: A flag computed at installer startup indicating whether Bonjour
-  is already present. Drives conditional install logic.
+  is already present (via registry key). Drives conditional install logic.
 - **Installer License Page**: The NSIS license page showing both AirBeam MIT and Apple Bonjour
   SDK licenses before file installation.
 
@@ -135,6 +158,8 @@ displayed and the installer cannot proceed without explicit acceptance.
 - **SC-005**: If Bonjour installation fails, zero AirBeam files remain on disk after rollback.
 - **SC-006**: The AirBeam installer binary size increases by no more than 5 MB compared to
   the pre-bundling baseline.
+- **SC-007**: The CMake fetch script completes successfully on a clean local developer machine
+  with internet access and produces a verified `installer/deps/BonjourPSSetup.exe`.
 
 ## Assumptions
 
@@ -146,19 +171,22 @@ displayed and the installer cannot proceed without explicit acceptance.
   can be launched quietly under that same elevation without a second UAC prompt.
 - Bonjour presence is detected via the `HKLM\SYSTEM\CurrentControlSet\Services\Bonjour Service`
   registry key, consistent with the existing detection logic in `installer/AirBeam.nsi`.
+- Detection is presence-based (any registered Bonjour service = skip), not version-comparison-based.
 - The installer is built with NSIS 3.x (as per the existing `installer/AirBeam.nsi`).
 - This feature does not change the application's runtime behavior (feature 005 balloon/click
   handler remains for cases where Bonjour is removed after installation).
+- `installer/deps/BonjourPSSetup.exe` is added to `.gitignore` (file-specific, not the whole directory); the fetched MSI is never committed.
 
 ## Dependencies
 
 - `installer/AirBeam.nsi` — existing NSIS script to be modified
-- Apple Bonjour Print Services MSI — to be downloaded from Apple and stored at
-  `installer/deps/BonjourPSSetup.exe`
+- CMake custom command fetch script — to be created at `installer/deps/fetch-bonjour.ps1`
+- Apple Bonjour Print Services MSI — fetched at build time to `installer/deps/BonjourPSSetup.exe`
 - NSIS 3.x `ExecWait` with elevated execution — already available
 
 ### Referenced Files
 
 - `installer/AirBeam.nsi` — NSIS installer script (primary modification target)
-- `installer/deps/BonjourPSSetup.exe` — bundled Bonjour MSI (to be added)
+- `installer/deps/fetch-bonjour.ps1` — CMake custom command fetch + verify script (to be created)
+- `installer/deps/BonjourPSSetup.exe` — fetched Bonjour MSI, gitignored (not committed)
 - `installer/licenses/bonjour-sdk-license.txt` — Apple Bonjour license text (to be added)

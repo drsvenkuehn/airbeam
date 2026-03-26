@@ -1,6 +1,6 @@
 # AirBeam Roadmap
 
-**Last updated**: 2026-03-25  
+**Last updated**: 2026-03-26  
 **Repository**: [drsvenkuehn/airbeam](https://github.com/drsvenkuehn/airbeam)
 
 ---
@@ -18,10 +18,15 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 | 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
 | 004 | WinSparkle Auto-Update | ✅ | ✅ | 23/23 | ✅ Complete |
 | 005 | Bonjour Install Guidance | ✅ | ✅ | 27/27 | ✅ Complete |
+| 006 | Bundle Bonjour Installer | ✅ | ✅ | 20/20 | ✅ Complete |
 
 ¹ All 23 tasks complete. Key re-keyed to local pair on 2026-03-25; update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with contents of `winsparkle-private.from-env.key`.
 
 ### v1.0 Remaining Work
+
+**006 — Bundle Bonjour Installer**
+
+✅ Complete (2026-03-26). `BonjourPSSetup.exe` fetched + SHA-256 verified at build time via `fetch-bonjour.ps1`; silently installed at NSIS install time if Bonjour absent; combined license page shown; `bonjour-fetch-smoke` CTest passes.
 
 **004 — WinSparkle Auto-Update**
 
