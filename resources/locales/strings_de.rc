@@ -4,28 +4,47 @@
 LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
 STRINGTABLE
 BEGIN
-    IDS_TOOLTIP_IDLE               "AirBeam \x2014 Bereit"
-    IDS_TOOLTIP_CONNECTING         "AirBeam \x2014 Verbinden\x2026"
-    IDS_TOOLTIP_STREAMING          "AirBeam \x2014 \xdc\x62ertragung l\xe4uft"
-    IDS_TOOLTIP_ERROR              "AirBeam \x2014 Fehler"
-    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam \x2014 Bonjour Not Found" // TODO(i18n): translate
+    IDS_TOOLTIP_IDLE               "AirBeam - Bereit"
+    IDS_TOOLTIP_CONNECTING         "AirBeam - Verbinden..."
+    IDS_TOOLTIP_STREAMING          "AirBeam - Wiedergabe l\xe4uft"
+    IDS_TOOLTIP_ERROR              "AirBeam - Fehler"
+    IDS_TOOLTIP_BONJOUR_MISSING    "AirBeam - Bonjour nicht gefunden"
 
     IDS_BALLOON_BONJOUR_MISSING    "Bonjour ist nicht installiert. AirPlay-Erkennung ben\xf6tigt Bonjour. Klicken, um zu installieren. Besuchen Sie: https://support.apple.com/downloads/bonjour-for-windows"
     IDS_BALLOON_CONNECTED          "Verbunden mit %s"
     IDS_BALLOON_DISCONNECTED       "Verbindung zu %s getrennt"
-    IDS_BALLOON_CONNECTION_FAILED  "Verbindung zu %s fehlgeschlagen"
+    IDS_BALLOON_CONNECTION_FAILED  "Verbindung zu %s fehlgeschlagen."
     IDS_BALLOON_CONFIG_RESET       "Einstellungen wurden auf Standardwerte zur\xfcckgesetzt."
     IDS_BALLOON_UPDATE_REJECTED    "Update abgelehnt: Signaturpr\xfcfung fehlgeschlagen."
-    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam \x2014 Bonjour erforderlich" // TODO(i18n): translate
+    IDS_BALLOON_TITLE_BONJOUR_MISSING "AirBeam - Bonjour erforderlich"
+    IDS_TITLE_CONNECTED           "AirBeam"
+    IDS_TITLE_CONNECTION_FAILED   "Verbindung fehlgeschlagen"
+    IDS_TITLE_RECONNECTED         "AirBeam"
+    IDS_TITLE_RECONNECT_FAILED    "Verbindung unterbrochen"
+    IDS_TITLE_SPEAKER_UNAVAILABLE "AirBeam"
+    IDS_TITLE_AUDIO_ERROR         "AirBeam"
+    IDS_TITLE_UPDATE_REJECTED     "AirBeam"
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 wird von diesem Empf\xe4nger nicht unterst\xfctzt"
     IDS_MENU_VOLUME                "Lautst\xe4rke"
-    IDS_MENU_LOW_LATENCY           "Niedriger-Latenz-Modus"
+    IDS_MENU_LOW_LATENCY           "Niedriger Latenzmodus"
     IDS_MENU_LAUNCH_AT_STARTUP     "Beim Start ausf\xfchren"
     IDS_MENU_OPEN_LOG_FOLDER       "Protokollordner \xf6ffnen"
-    IDS_MENU_CHECK_FOR_UPDATES     "Auf Updates pr\xfcfen\x2026"
+    IDS_MENU_CHECK_FOR_UPDATES     "Auf Updates pr\xfcfen..."
     IDS_MENU_QUIT                  "AirBeam beenden"
     IDS_INSTALLER_BONJOUR_PROMPT   "Bonjour wird f\xfcr die AirPlay-Ger\xe4teerkennung ben\xf6tigt. Bonjour jetzt herunterladen und installieren?"
 
+    IDS_MENU_SEARCHING       "Suche nach Lautsprechern..."
+    IDS_MENU_BONJOUR_MISSING "Installiere Bonjour zur Ger\xe4teerkennung"
+    IDS_MENU_CONNECTING      " - Verbinden..."
+    IDS_MENU_SPEAKERS        "Lautsprecher"
+
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
+    IDS_CAPTURE_ERROR_BALLOON      "Audioaufnahme-Fehler. Bitte Audioger\xe4t pr\xfcfen."
+    IDS_RECONNECTED                "Mit %s verbunden"
+    IDS_RECONNECT_FAILED           "Verbindung zu %s unterbrochen. Bitte sicherstellen, dass der Lautsprecher eingeschaltet und im selben Netzwerk ist."
+    IDS_SPEAKER_UNAVAILABLE        "%s ist nicht mehr erreichbar."
+    IDS_ERROR_CAPTURE_FAILED       "Audioaufnahme gestoppt. Bitte neu verbinden."
+    IDS_ERROR_NO_AUDIO_DEVICE      "Kein Audioausgabeger\xe4t gefunden."
+    IDS_ENCODER_ERROR              "Audiofehler aufgetreten. Bitte neu verbinden."
 END
