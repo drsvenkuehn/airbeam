@@ -175,9 +175,17 @@ void AppController::ShowTrayMenu() {
     int connectedIdx  = -1;
     int connectingIdx = -1;
     if (cc_) {
-        PipelineState s = cc_->GetState();
-        if (s == PipelineState::Streaming)  { connectedIdx  = connectingReceiverIdx_; }
-        if (s == PipelineState::Connecting) { connectingIdx = connectingReceiverIdx_; }
+        const PipelineState s      = cc_->GetState();
+        const std::wstring& target = cc_->GetCurrentTargetInstance();
+        if (!target.empty()) {
+            for (int i = 0; i < static_cast<int>(sortedReceivers_.size()); ++i) {
+                if (sortedReceivers_[i].instanceName == target) {
+                    if (s == PipelineState::Streaming)  connectedIdx  = i;
+                    if (s == PipelineState::Connecting) connectingIdx = i;
+                    break;
+                }
+            }
+        }
     }
 
     UINT cmd = trayMenu_.Show(hwnd_, config_, sparkle_.IsAvailable(),

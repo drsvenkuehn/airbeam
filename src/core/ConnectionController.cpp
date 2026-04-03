@@ -102,6 +102,7 @@ void ConnectionController::BeginConnect(const AirPlayReceiver& target)
     assert(state_ == PipelineState::Idle);
     assert(!session_);
 
+    currentTargetInstance_ = target.instanceName;
     CC_TRACE(L"[CC] BeginConnect → %ls", target.displayName.c_str());
 
     // Pre-allocate all session resources on Thread 1 before any thread starts
