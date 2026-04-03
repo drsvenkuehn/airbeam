@@ -153,8 +153,13 @@ LRESULT CALLBACK VolumePopup::WndProc(HWND hwnd, UINT msg,
     }
 
     case WM_KILLFOCUS:
-        ShowWindow(hwnd, SW_HIDE);
+    {
+        // Focus moving to a child (e.g. the trackbar) must not hide the popup.
+        HWND newFocus = reinterpret_cast<HWND>(wParam);
+        if (!IsChild(hwnd, newFocus))
+            ShowWindow(hwnd, SW_HIDE);
         return 0;
+    }
 
     case WM_ACTIVATE:
         if (LOWORD(wParam) == WA_INACTIVE)
