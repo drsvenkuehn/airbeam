@@ -63,9 +63,12 @@ bool AppController::Start(HINSTANCE hInst, HWND hwnd, bool isStartupLaunch) {
     sparkle_.Init(config_);
     sparkle_.SetMainHwnd(hwnd_);
 
-    volumePopup_.Create(hInst_, hwnd_, [this](float v) {
+    menuSlider_.Init([this](float v) {
         if (cc_) cc_->SetVolume(v);
+        config_.volume = v;
+        config_.Save();
     });
+    menuSlider_.SetVolume(config_.volume);
 
     if (cc_) cc_->StartAutoConnectWindow();
 
@@ -85,7 +88,6 @@ void AppController::HandleCommand(UINT id) {
     case IDM_QUIT:          DestroyWindow(hwnd_); break;
     case IDM_CHECK_UPDATES: sparkle_.CheckForUpdates(); break;
     case IDM_OPEN_LOG_FOLDER: Logger::Instance().OpenLogFolder(); break;
-    case IDM_VOLUME:        volumePopup_.Show(config_.volume); break;
 
     case IDM_LOW_LATENCY_TOGGLE:
         if (cc_) cc_->SetLowLatency(!config_.lowLatency);
@@ -169,6 +171,14 @@ void AppController::HandleTimer(WPARAM wParam) {
         trayIcon_.OnAnimationTick();
 }
 
+bool AppController::HandleMeasureItem(MEASUREITEMSTRUCT* mis) {
+    return menuSlider_.HandleMeasureItem(mis);
+}
+
+bool AppController::HandleDrawItem(DRAWITEMSTRUCT* dis) {
+    return menuSlider_.HandleDrawItem(dis);
+}
+
 void AppController::ShowTrayMenu() {
     SetForegroundWindow(hwnd_);
 
@@ -192,7 +202,9 @@ void AppController::ShowTrayMenu() {
                               bonjourMissing_,
                               sortedReceivers_,
                               connectedIdx,
-                              connectingIdx);
+                              connectingIdx,
+                              &menuSlider_,
+                              config_.volume);
 
     PostMessageW(hwnd_, WM_NULL, 0, 0);
     if (cmd != 0) HandleCommand(cmd);

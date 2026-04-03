@@ -1,34 +1,30 @@
 #pragma once
 #include <windows.h>
 #include <memory>
+#include <vector>
 #include <cstdint>
 
 #include "core/Logger.h"
 #include "core/Config.h"
+#include "core/ConnectionController.h"
 #include "localization/StringLoader.h"
 #include "ui/TrayIcon.h"
 #include "ui/TrayMenu.h"
 #include "ui/BalloonNotify.h"
-#include "ui/VolumePopup.h"
+#include "ui/MenuVolumeSlider.h"
 #include "update/SparkleIntegration.h"
-#include "audio/SpscRingBuffer.h"
 #include "discovery/AirPlayReceiver.h"
 #include "discovery/ReceiverList.h"
-#include "protocol/AesCbcCipher.h"
-#include "protocol/RetransmitBuffer.h"
-
-#include "audio/WasapiCapture.h"
-#include "audio/AlacEncoderThread.h"
-#include "protocol/RaopSession.h"
 #include "discovery/BonjourLoader.h"
 #include "discovery/MdnsDiscovery.h"
 
 // Top-level orchestrator.  Owns all subsystems and dispatches Win32 messages.
 // Lifetime: created on the stack in WinMain before the message loop.
+// Pipeline lifecycle is delegated to ConnectionController.
 class AppController {
 public:
     AppController()  = default;
-    ~AppController(); // defined in .cpp where session-object types are complete
+    ~AppController();
 
     AppController(const AppController&)            = delete;
     AppController& operator=(const AppController&) = delete;
@@ -48,79 +44,59 @@ public:
     void HandleCommand(UINT id);
 
     // Routes Shell_NotifyIcon callback messages.
-    // lParam carries the mouse/notification event (e.g. WM_RBUTTONUP).
     void HandleTrayCallback(LPARAM lParam);
 
     // Re-builds the speaker section of the tray menu.
     // Called when WM_RECEIVERS_UPDATED arrives.
     void HandleReceiversUpdated();
 
-    // Called when WM_RAOP_CONNECTED arrives (lParam = receiver index).
-    void HandleRaopConnected(LPARAM lParam);
-
-    // Called when WM_RAOP_FAILED arrives.
-    void HandleRaopFailed(LPARAM lParam);
-
-    // Called when WM_TIMER arrives.
-    void HandleTimer(WPARAM wParam);
-
     // Called when WM_BONJOUR_MISSING arrives.
     void HandleBonjourMissing();
-
-    // Called when WM_DEFAULT_DEVICE_CHANGED arrives (default audio render
-    // device was switched).  Restarts WasapiCapture on the new device; ring
-    // buffer absorbs the gap so Threads 4 and 5 continue uninterrupted.
-    void HandleDefaultDeviceChanged();
 
     // Called when WM_UPDATE_REJECTED arrives (WinSparkle EdDSA failure).
     void HandleUpdateRejected();
 
+    // Called when WM_STREAM_STARTED arrives — update tray menu (show Disconnect).
+    void HandleStreamStarted();
+
+    // Called when WM_STREAM_STOPPED arrives — update tray menu (hide Disconnect).
+    void HandleStreamStopped();
+
+    // WM_TIMER dispatch — forwards CC timer IDs to cc_, handles others internally.
+    void HandleTimer(WPARAM wParam);
+
+    // Forward WM_MEASUREITEM / WM_DRAWITEM for owner-drawn menu items.
+    bool HandleMeasureItem(MEASUREITEMSTRUCT* mis);
+    bool HandleDrawItem(DRAWITEMSTRUCT* dis);
+
     HWND GetWindow() const { return hwnd_; }
 
-private:
-    // Shows the tray popup menu at the current cursor position and dispatches
-    // the returned command (if any).
-    void ShowTrayMenu();
+    // Access ConnectionController for WndProc message forwarding
+    ConnectionController* GetCC() { return cc_.get(); }
 
-    void Connect(const AirPlayReceiver& receiver, int idx);
-    void Disconnect();
+private:
+    void ShowTrayMenu();
 
     HWND      hwnd_            = nullptr;
     HINSTANCE hInst_           = nullptr;
     bool      isStartupLaunch_ = false;
-
-    // Timer IDs
-    static constexpr UINT TIMER_RECONNECT_WINDOW = 1;
-    static constexpr UINT TIMER_RAOP_RETRY       = 2;
 
     // Logger is a singleton (Logger::Instance()); no member needed.
     Config             config_;
     TrayIcon           trayIcon_;
     TrayMenu           trayMenu_;
     BalloonNotify      balloonNotify_;
-    VolumePopup        volumePopup_;
+    MenuVolumeSlider   menuSlider_;
     SparkleIntegration sparkle_;
 
-    std::unique_ptr<ReceiverList>  receiverList_;
-    std::unique_ptr<BonjourLoader> bonjourLoader_;
-    std::unique_ptr<MdnsDiscovery> mdnsDiscovery_;
+    std::unique_ptr<ReceiverList>         receiverList_;
+    std::unique_ptr<BonjourLoader>        bonjourLoader_;
+    std::unique_ptr<MdnsDiscovery>        mdnsDiscovery_;
+    std::unique_ptr<ConnectionController> cc_;
 
-    // Session objects (owned by AppController)
-    std::unique_ptr<SpscRingBuffer<AudioFrame,128>> ringStd_;
-    std::unique_ptr<SpscRingBuffer<AudioFrame,32>>  ringLL_;
-    SpscRingBufferPtr                               ring_{static_cast<SpscRingBuffer<AudioFrame,128>*>(nullptr)};
-    std::unique_ptr<RetransmitBuffer>               retransmit_;
-    std::unique_ptr<AesCbcCipher>                   cipher_;
-    std::unique_ptr<WasapiCapture>                  wasapi_;
-    std::unique_ptr<AlacEncoderThread>              alacThread_;
-    std::unique_ptr<RaopSession>                    raopSession_;
-    AirPlayReceiver                                 connectedReceiver_;
-    int                                             connectedReceiverIdx_ = -1;
-    bool                                            isConnected_          = false;
-
-    // Auto-reconnect / retry state
-    bool reconnectWindowActive_ = false;
-    int  retryCount_             = 0;
-    bool wasStreaming_            = false;
-    bool lastBalloonWasBonjour_   = false;
+    // UI state
+    std::vector<AirPlayReceiver> sortedReceivers_;
+    int  connectingReceiverIdx_  = -1;  // index shown as "Connecting…" in menu
+    bool bonjourMissing_         = false;
+    bool lastBalloonWasBonjour_  = false;
 };

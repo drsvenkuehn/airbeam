@@ -9,6 +9,7 @@
 #include <string>
 #include "ui/TrayMenu.h"
 #include "ui/MenuIds.h"
+#include "ui/MenuVolumeSlider.h"
 #include "localization/StringLoader.h"
 #include "discovery/AirPlayReceiver.h"
 #include "resource_ids.h"
@@ -21,7 +22,9 @@ HMENU TrayMenu::BuildMenu(const Config& config, bool sparkleAvailable,
                           bool bonjourMissing,
                           const std::vector<AirPlayReceiver>& receivers,
                           int connectedReceiverIdx,
-                          int connectingReceiverIdx) const {
+                          int connectingReceiverIdx,
+                          MenuVolumeSlider* slider,
+                          float volume) const {
     HMENU hMenu = CreatePopupMenu();
     if (!hMenu) return nullptr;
 
@@ -85,9 +88,13 @@ HMENU TrayMenu::BuildMenu(const Config& config, bool sparkleAvailable,
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
 
     // ── Volume ────────────────────────────────────────────────────────────────
-    std::wstring volLabel = StringLoader::Load(IDS_MENU_VOLUME);
-    if (volLabel.empty()) volLabel = L"Volume";
-    AppendMenuW(hMenu, MF_STRING, IDM_VOLUME, volLabel.c_str());
+    if (slider) {
+        slider->InsertItems(hMenu, volume);
+    } else {
+        std::wstring volLabel = StringLoader::Load(IDS_MENU_VOLUME);
+        if (volLabel.empty()) volLabel = L"Volume";
+        AppendMenuW(hMenu, MF_STRING, IDM_VOLUME, volLabel.c_str());
+    }
 
     // ── Low-latency mode toggle ───────────────────────────────────────────────
     std::wstring llLabel = StringLoader::Load(IDS_MENU_LOW_LATENCY);
@@ -127,9 +134,12 @@ UINT TrayMenu::Show(HWND hwnd, const Config& config, bool sparkleAvailable,
                     bool bonjourMissing,
                     const std::vector<AirPlayReceiver>& receivers,
                     int connectedReceiverIdx,
-                    int connectingReceiverIdx) {
+                    int connectingReceiverIdx,
+                    MenuVolumeSlider* slider,
+                    float volume) {
     HMENU hMenu = BuildMenu(config, sparkleAvailable, bonjourMissing, receivers,
-                            connectedReceiverIdx, connectingReceiverIdx);
+                            connectedReceiverIdx, connectingReceiverIdx,
+                            slider, volume);
     if (!hMenu) return 0;
 
     // ── Show at cursor position ───────────────────────────────────────────────
@@ -137,10 +147,14 @@ UINT TrayMenu::Show(HWND hwnd, const Config& config, bool sparkleAvailable,
     GetCursorPos(&pt);
     SetForegroundWindow(hwnd);
 
+    if (slider) slider->BeforeTrackPopup();
+
     UINT cmd = static_cast<UINT>(TrackPopupMenu(
         hMenu,
         TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN | TPM_RIGHTALIGN,
         pt.x, pt.y, 0, hwnd, nullptr));
+
+    if (slider) slider->AfterTrackPopup();
 
     DestroyMenu(hMenu);
     return cmd;

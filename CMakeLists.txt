@@ -131,6 +131,7 @@ set(AIRBEAM_SOURCES
 
     src/ui/TrayIcon.cpp
     src/ui/TrayMenu.cpp
+    src/ui/MenuVolumeSlider.cpp
     src/ui/VolumePopup.cpp
     src/ui/BalloonNotify.cpp
     src/ui/StartupRegistry.cpp

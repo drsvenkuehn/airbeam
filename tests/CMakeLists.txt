@@ -13,6 +13,11 @@ set(UNIT_TEST_SOURCES
     unit/test_mdns_txt.cpp
     unit/test_volume_mapper.cpp
     unit/test_frame_accumulator.cpp
+    unit/test_receiver_list.cpp
+    unit/test_tray_menu.cpp
+    unit/test_resampler.cpp
+    unit/test_wasapi_stop_start.cpp
+    unit/test_connection_controller.cpp
 )
 
 # ── Integration tests ────────────────────────────────────────────────────────
@@ -31,6 +36,8 @@ set(E2E_TEST_SOURCES
 set(TEST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/Logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Config.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ConnectionController.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/StreamSession.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/VolumeMapper.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/AesCbcCipher.cpp
     ${CMAKE_SOURCE_DIR}/src/protocol/RetransmitBuffer.cpp
@@ -42,6 +49,12 @@ set(TEST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/audio/Resampler.cpp
     ${CMAKE_SOURCE_DIR}/src/audio/WasapiCapture.cpp
     ${CMAKE_SOURCE_DIR}/src/discovery/TxtRecord.cpp
+    ${CMAKE_SOURCE_DIR}/src/discovery/ReceiverList.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TrayIcon.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TrayMenu.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MenuVolumeSlider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/BalloonNotify.cpp
+    ${CMAKE_SOURCE_DIR}/src/localization/StringLoader.cpp
 )
 
 # ── AirBeamTests executable ──────────────────────────────────────────────────
@@ -70,6 +83,7 @@ target_link_libraries(AirBeamTests PRIVATE
     GTest::gtest_main
     alac_static
     nlohmann_json::nlohmann_json
+    speexdsp_resampler
     ole32.lib
     oleaut32.lib
     avrt.lib
@@ -80,13 +94,10 @@ target_link_libraries(AirBeamTests PRIVATE
     advapi32.lib
     shell32.lib   # Logger::OpenLogFolder → ShellExecuteW
     gdi32.lib
+    comctl32.lib  # Common controls (TrayIcon, BalloonNotify)
 )
 
-if(AIRBEAM_USE_RESAMPLER)
-    target_link_libraries(AirBeamTests PRIVATE samplerate)
-endif()
-
-# ── CTest registration ────────────────────────────────────────────────────────
+# ── CTest registration────────────────────────────────────────────────────────
 include(GoogleTest)
 gtest_discover_tests(AirBeamTests
     PROPERTIES LABELS "unit"
