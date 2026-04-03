@@ -7,7 +7,14 @@
 #include <windows.h>
 #include "discovery/ReceiverList.h"
 #include "core/Messages.h"
+#include "core/Logger.h"
 #include <algorithm>
+
+// ---------------------------------------------------------------------------
+// File-level constants
+// ---------------------------------------------------------------------------
+
+static constexpr ULONGLONG kStaleTimeoutMs = 60000ULL;
 
 // ---------------------------------------------------------------------------
 // Construction / destruction
@@ -30,6 +37,21 @@ ReceiverList::~ReceiverList()
 
 void ReceiverList::Update(const AirPlayReceiver& receiver)
 {
+    // Accept AirPlay 1 compatible devices and AirPlay 2-only devices (shown
+    // in the menu with an informational label). Silently drop anything else
+    // (e.g. MFiSAP-only devices that speak neither protocol).
+    if (!receiver.isAirPlay1Compatible && !receiver.isAirPlay2Only)
+    {
+        LOG_WARN("ReceiverList: \"%ls\" filtered (unsupported protocol)",
+                 receiver.instanceName.c_str());
+        return;
+    }
+    if (receiver.isAirPlay2Only)
+    {
+        LOG_INFO("ReceiverList: \"%ls\" added as AirPlay 2-only (will show with label)",
+                 receiver.instanceName.c_str());
+    }
+
     EnterCriticalSection(&cs_);
 
     auto it = std::find_if(receivers_.begin(), receivers_.end(),
@@ -78,7 +100,7 @@ void ReceiverList::PruneStale(ULONGLONG nowTicks)
         std::remove_if(receivers_.begin(), receivers_.end(),
             [nowTicks](const AirPlayReceiver& r)
             {
-                return (nowTicks - static_cast<ULONGLONG>(r.lastSeenTick)) > 60000ULL;
+                return (nowTicks - r.lastSeenTick) > kStaleTimeoutMs;
             }),
         receivers_.end());
 

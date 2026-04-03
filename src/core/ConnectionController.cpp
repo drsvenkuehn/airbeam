@@ -246,6 +246,15 @@ void ConnectionController::CancelReconnect()
 
 void ConnectionController::Connect(const AirPlayReceiver& target)
 {
+    // Reject AirPlay 2-only devices before attempting any connection.
+    if (target.isAirPlay2Only) {
+        LOG_WARN("CC: \"%ls\" is AirPlay 2-only — not supported in v1.0",
+                 target.displayName.c_str());
+        balloon_.ShowWarning(IDS_TITLE_AIRPLAY2_ONLY, IDS_AIRPLAY2_ONLY,
+                             target.displayName.c_str());
+        return;
+    }
+
     switch (state_) {
     case PipelineState::Idle:
         CancelReconnect();

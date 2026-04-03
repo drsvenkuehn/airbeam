@@ -24,6 +24,7 @@ BEGIN
     IDS_TITLE_SPEAKER_UNAVAILABLE "AirBeam"
     IDS_TITLE_AUDIO_ERROR         "AirBeam"
     IDS_TITLE_UPDATE_REJECTED     "AirBeam"
+    IDS_TITLE_AIRPLAY2_ONLY       "Not Compatible"
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "\x6b64\x63a5\x6536\x65b9\x4e0d\x652f\x6301 AirPlay 2"
     IDS_MENU_VOLUME                "\x97f3\x91cf"
@@ -47,4 +48,6 @@ BEGIN
     IDS_ERROR_CAPTURE_FAILED       "\x97f3\x9891\x6355\x83b7\x610f\x5916\x5931\x8d25\x3002\x8bf7\x91cd\x65b0\x8fde\x63a5\x3002"
     IDS_ERROR_NO_AUDIO_DEVICE      "\x672a\x627e\x5230\x97f3\x9891\x8bbe\x5907\x3002\x8bf7\x8fde\x63a5\x97f3\x9891\x8bbe\x5907\x540e\x91cd\x8bd5\x3002"
     IDS_ENCODER_ERROR              "\x97f3\x9891\x7f16\x7801\x5668\x9519\x8bef\x3002\x8bf7\x91cd\x65b0\x8fde\x63a5\x3002"
+    IDS_AIRPLAY2_ONLY              "%s requires AirPlay 2. AirBeam currently supports AirPlay 1 speakers only."
+    IDS_AIRPLAY2_ONLY              "%s requires AirPlay 2. AirBeam currently supports AirPlay 1 speakers only."
 END

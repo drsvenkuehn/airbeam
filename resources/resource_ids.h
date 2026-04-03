@@ -24,6 +24,7 @@
 #define IDS_TITLE_SPEAKER_UNAVAILABLE 1054
 #define IDS_TITLE_AUDIO_ERROR         1055
 #define IDS_TITLE_UPDATE_REJECTED     1056
+#define IDS_TITLE_AIRPLAY2_ONLY       1057
 
 // ── Menu labels ──────────────────────────────────────────────────────────────
 #define IDS_LABEL_AIRPLAY2_UNSUPPORTED 1020
@@ -54,6 +55,7 @@
 #define IDS_ERROR_CAPTURE_FAILED      1043  // "Audio capture failed unexpectedly."
 #define IDS_ERROR_NO_AUDIO_DEVICE     1044  // "No audio device found."
 #define IDS_ENCODER_ERROR             1045  // "Audio encoder error. Please reconnect."
+#define IDS_AIRPLAY2_ONLY             1046  // "%s requires AirPlay 2 (not supported)."
 
 // ── Compile-time URL constants ─────────────────────────────────────────────
 #ifdef __cplusplus

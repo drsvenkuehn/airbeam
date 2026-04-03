@@ -24,6 +24,7 @@ BEGIN
     IDS_TITLE_SPEAKER_UNAVAILABLE "AirBeam"
     IDS_TITLE_AUDIO_ERROR         "AirBeam"
     IDS_TITLE_UPDATE_REJECTED     "AirBeam"
+    IDS_TITLE_AIRPLAY2_ONLY       "Not Compatible"
 
     IDS_LABEL_AIRPLAY2_UNSUPPORTED "AirPlay 2 non pris en charge par ce r\xe9cepteur"
     IDS_MENU_VOLUME                "Volume"
@@ -47,4 +48,6 @@ BEGIN
     IDS_ERROR_CAPTURE_FAILED       "La capture audio a \xe9chou\xe9 de mani\xe8re inattendue. Veuillez vous reconnecter."
     IDS_ERROR_NO_AUDIO_DEVICE      "Aucun p\xe9riph\xe9rique audio trouv\xe9. Veuillez connecter un p\xe9riph\xe9rique audio et r\xe9essayer."
     IDS_ENCODER_ERROR              "Erreur de l'encodeur audio. Veuillez vous reconnecter."
+    IDS_AIRPLAY2_ONLY              "%s requires AirPlay 2. AirBeam currently supports AirPlay 1 speakers only."
+    IDS_AIRPLAY2_ONLY              "%s requires AirPlay 2. AirBeam currently supports AirPlay 1 speakers only."
 END
