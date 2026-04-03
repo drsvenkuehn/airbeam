@@ -51,6 +51,8 @@ HMENU TrayMenu::BuildMenu(const Config& config, bool sparkleAvailable,
                         IDM_DEVICE_BASE + static_cast<UINT>(i),
                         label.c_str());
         }
+        if (connectedReceiverIdx >= 0)
+            SetMenuDefaultItem(hMenu, IDM_DEVICE_BASE + static_cast<UINT>(connectedReceiverIdx), FALSE);
     } else {
         // Submenu
         HMENU hSub = CreatePopupMenu();
@@ -70,6 +72,8 @@ HMENU TrayMenu::BuildMenu(const Config& config, bool sparkleAvailable,
                             IDM_DEVICE_BASE + static_cast<UINT>(i),
                             label.c_str());
             }
+            if (connectedReceiverIdx >= 0)
+                SetMenuDefaultItem(hSub, IDM_DEVICE_BASE + static_cast<UINT>(connectedReceiverIdx), FALSE);
             std::wstring speakersLabel = StringLoader::Load(IDS_MENU_SPEAKERS);
             if (speakersLabel.empty()) speakersLabel = L"Speakers";
             AppendMenuW(hMenu, MF_POPUP | MF_STRING,
