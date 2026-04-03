@@ -39,6 +39,7 @@ BEGIN
     IDS_MENU_BONJOUR_MISSING "Installiere Bonjour zur Ger\xe4teerkennung"
     IDS_MENU_CONNECTING      " - Verbinden..."
     IDS_MENU_SPEAKERS        "Lautsprecher"
+    IDS_MENU_DISCONNECT      "Trennen"
 
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
     IDS_CAPTURE_ERROR_BALLOON      "Audioaufnahme-Fehler. Bitte Audioger\xe4t pr\xfcfen."

@@ -39,6 +39,7 @@ BEGIN
     IDS_MENU_BONJOUR_MISSING "\xc2a4\xd53c\xcee4\xb97c \xcc3e\xc73c\xb824\xba74 Bonjour\xb97c \xc124\xce58\xd558\xc138\xc694"
     IDS_MENU_CONNECTING      " - \xc5f0\xacb0 \xc911..."
     IDS_MENU_SPEAKERS        "\xc2a4\xd53c\xcee4"
+    IDS_MENU_DISCONNECT      "\xc5f0\xacb0 \xb04a\xae30"
 
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
     IDS_CAPTURE_ERROR_BALLOON      "\xc624\xb514\xc624 \xcf94\xcc98 \xc624\xb958. \xc624\xb514\xc624 \xc7a5\xce58 \xc124\xc815\xc744 \xd655\xc778\xd558\xc138\xc694."

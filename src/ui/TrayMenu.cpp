@@ -87,6 +87,13 @@ HMENU TrayMenu::BuildMenu(const Config& config, bool sparkleAvailable,
 
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
 
+    // ── Disconnect (only when connected) ─────────────────────────────────────
+    if (connectedReceiverIdx >= 0) {
+        std::wstring disconnectLabel = StringLoader::Load(IDS_MENU_DISCONNECT);
+        if (disconnectLabel.empty()) disconnectLabel = L"Disconnect";
+        AppendMenuW(hMenu, MF_STRING, IDM_DISCONNECT, disconnectLabel.c_str());
+    }
+
     // ── Volume ────────────────────────────────────────────────────────────────
     if (slider) {
         slider->InsertItems(hMenu, volume);

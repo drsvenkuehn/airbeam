@@ -106,6 +106,10 @@ void AppController::HandleCommand(UINT id) {
         }
         break;
 
+    case IDM_DISCONNECT:
+        if (cc_) cc_->Disconnect();
+        break;
+
     case IDM_SHOW_MENU: ShowTrayMenu(); break;
 
     default:

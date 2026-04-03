@@ -39,6 +39,7 @@ BEGIN
     IDS_MENU_BONJOUR_MISSING "Installez Bonjour pour d\xe9couvrir les haut-parleurs"
     IDS_MENU_CONNECTING      " - Connexion..."
     IDS_MENU_SPEAKERS        "Haut-parleurs"
+    IDS_MENU_DISCONNECT      "D\xe9connecter"
 
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
     IDS_CAPTURE_ERROR_BALLOON      "Erreur de capture audio. V\xe9rifiez les param\xe8tres de votre p\xe9riph\xe9rique audio."

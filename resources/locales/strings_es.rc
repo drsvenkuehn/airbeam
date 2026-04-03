@@ -39,6 +39,7 @@ BEGIN
     IDS_MENU_BONJOUR_MISSING "Instala Bonjour para descubrir altavoces"
     IDS_MENU_CONNECTING      " - Conectando..."
     IDS_MENU_SPEAKERS        "Altavoces"
+    IDS_MENU_DISCONNECT      "Desconectar"
 
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
     IDS_CAPTURE_ERROR_BALLOON      "Error de captura de audio. Compruebe la configuraci\xf3n del dispositivo de audio."

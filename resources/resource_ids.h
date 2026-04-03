@@ -41,6 +41,7 @@
 #define IDS_MENU_BONJOUR_MISSING 1029
 #define IDS_MENU_CONNECTING      1030
 #define IDS_MENU_SPEAKERS        1031
+#define IDS_MENU_DISCONNECT      1047
 
 // ── WinSparkle Ed25519 public key ─────────────────────────────────────────────
 #define IDS_SPARKLE_PUBKEY            1032

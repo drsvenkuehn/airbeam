@@ -39,6 +39,7 @@ BEGIN
     IDS_MENU_BONJOUR_MISSING "Install Bonjour to discover speakers"
     IDS_MENU_CONNECTING      " - Connecting..."
     IDS_MENU_SPEAKERS        "Speakers"
+    IDS_MENU_DISCONNECT      "Disconnect"
 
     IDS_SPARKLE_PUBKEY             "9r51ozVrJUMpbpsc1TGuyByFSA0zVlIkKfwsrpJNU/s="
     IDS_CAPTURE_ERROR_BALLOON      "Audio capture error. Check your audio device."
