@@ -15,36 +15,33 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 |---|---------|------|------|-------|--------|
 | 001 | AirPlay Audio Sender | ✅ | ✅ | 101/101 | ✅ Complete |
 | 002 | CI / Build Hardening | ✅ | ✅ | 9/9 | ✅ Complete |
-| 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | 🔧 In Progress — icons generated, CTest added; manual review pending |
+| 003 | Branded Tray Icons | ✅ | ✅ | 25/25 | ✅ Complete |
 | 004 | WinSparkle Auto-Update | ✅ | ✅ | 23/23 | ✅ Complete |
 | 005 | Bonjour Install Guidance | ✅ | ✅ | 27/27 | ✅ Complete |
 | 006 | Bundle Bonjour Installer | ✅ | ✅ | 20/20 | ✅ Complete |
+| 007 | WASAPI Loopback Capture | ✅ | ✅ | ✅ | ✅ Complete |
+| 008 | mDNS / Tray Discovery | ✅ | ✅ | ✅ | ✅ Complete |
+| 009 | Connection Controller | ✅ | ✅ | ✅ | ✅ Complete |
 
 ¹ All 23 tasks complete. Key re-keyed to local pair on 2026-03-25; update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with contents of `winsparkle-private.from-env.key`.
 
 ### v1.0 Remaining Work
 
-**006 — Bundle Bonjour Installer**
+**003 — Branded Tray Icons**: ✅ Complete (2026-04-03). Icons reviewed at 16×16 and 32×32, all states confirmed.
 
-✅ Complete (2026-03-26). `BonjourPSSetup.exe` fetched + SHA-256 verified at build time via `fetch-bonjour.ps1`; silently installed at NSIS install time if Bonjour absent; combined license page shown; `bonjour-fetch-smoke` CTest passes.
+**004 — WinSparkle Auto-Update**: ✅ Complete (2026-03-25). Key re-keyed to local pair (`9r51oz...`). Update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with the contents of `winsparkle-private.from-env.key`.
 
-**004 — WinSparkle Auto-Update**
+**006 — Bundle Bonjour Installer**: ✅ Complete (2026-03-26). `BonjourPSSetup.exe` fetched + SHA-256 verified at build time via `fetch-bonjour.ps1`; silently installed at NSIS install time if Bonjour absent; combined license page shown; `bonjour-fetch-smoke` CTest passes.
 
-✅ Complete (2026-03-25). Key re-keyed to local pair (`9r51oz...`). Update GitHub Actions `SPARKLE_PRIVATE_KEY` secret with the contents of `winsparkle-private.from-env.key`.
+**007 — WASAPI Loopback Capture**: ✅ Complete. WASAPI event-driven capture, MMCSS boost, resampler, SPSC ring buffer.
 
-**003 — Branded Tray Icons (manual review pending)**
+**008 — mDNS / Tray Discovery**: ✅ Complete. Bonjour-based mDNS browse/resolve, TXT record parsing, AirPlay 2-only detection, tray menu with live speaker list.
 
-Icons generated and committed. CTest `icon-validation` test added. Manual acceptance work:
-1. Build Release configuration and verify all 11 icons embedded (`Resource Hacker` or `sigcheck -i`)
-2. Visual review at 16×16 and 32×32 on 100% + 150% DPI (SC-001)
-3. Confirm idle/streaming/error states identifiable without tooltip (SC-002)
-4. Verify connecting animation cycles at ~1000 ms (SC-004, fixed to 125 ms × 8)
+**009 — Connection Controller**: ✅ Complete (2026-04-03). Full pipeline lifecycle (Idle→Connecting→Streaming→Disconnecting), auto-reconnect, AirPlay 2 detection, bold connected speaker, notification fixes.
 
-See [`specs/003-branded-tray-icons/tasks.md`](003-branded-tray-icons/tasks.md) T009–T021 for full review checklist.
-
-**005 — Bonjour Install Guidance**
-
-✅ Complete (2026-03-25). URL embedded in balloon, click opens Apple download page.
+**Open gaps before v1.0 release:**
+- Disconnect menu item (not yet in tray menu)
+- VolumePopup implementation (IDM_VOLUME exists, implementation TBD)
 
 ---
 
