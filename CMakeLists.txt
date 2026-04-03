@@ -184,7 +184,7 @@ target_link_libraries(AirBeam PRIVATE
 
 if(MSVC)
     set_target_properties(AirBeam PROPERTIES
-        LINK_FLAGS "/MANIFEST:EMBED /MANIFESTINPUT:${CMAKE_CURRENT_SOURCE_DIR}/resources/AirBeam.manifest"
+        LINK_FLAGS "/MANIFEST:NO"
     )
 endif()
 

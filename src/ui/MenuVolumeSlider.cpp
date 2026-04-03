@@ -81,13 +81,12 @@ bool MenuVolumeSlider::HandleDrawItem(DRAWITEMSTRUCT* dis) {
         SetBkMode(dis->hDC, TRANSPARENT);
         SetTextColor(dis->hDC, GetSysColor(COLOR_MENUTEXT));
         RECT r = dis->rcItem;
-        r.left += 10;
+        r.left += GetSystemMetrics(SM_CXMENUCHECK);
         DrawTextW(dis->hDC, buf, -1, &r, DT_SINGLELINE | DT_LEFT | DT_VCENTER | DT_NOCLIP);
     } else {
         // ── Slider row ────────────────────────────────────────────────────────
 
         // Try to capture the menu window HWND for coordinate conversion.
-        // Fallback to FindWindow if the hook hasn't fired yet.
         if (!menuHwnd_) {
             menuHwnd_ = FindWindowW(L"#32768", nullptr);
         }
@@ -103,8 +102,9 @@ bool MenuVolumeSlider::HandleDrawItem(DRAWITEMSTRUCT* dis) {
         // Background
         FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_MENU));
 
-        const int margin    = 10;
-        const int trackLeft  = dis->rcItem.left  + margin;
+        const int checkW     = GetSystemMetrics(SM_CXMENUCHECK);
+        const int margin     = 4;
+        const int trackLeft  = dis->rcItem.left  + checkW + margin;
         const int trackRight = dis->rcItem.right - margin;
         const int trackWidth = trackRight - trackLeft;
         const int trackY     = (dis->rcItem.top + dis->rcItem.bottom) / 2;
