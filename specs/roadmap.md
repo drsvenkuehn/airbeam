@@ -1,6 +1,6 @@
 # AirBeam Roadmap
 
-**Last updated**: 2026-03-26  
+**Last updated**: 2026-04-03  
 **Repository**: [drsvenkuehn/airbeam](https://github.com/drsvenkuehn/airbeam)
 
 ---
@@ -39,9 +39,15 @@ Native Windows system-tray application streaming system audio to AirPlay (RAOP) 
 
 **009 — Connection Controller**: ✅ Complete (2026-04-03). Full pipeline lifecycle (Idle→Connecting→Streaming→Disconnecting), auto-reconnect, AirPlay 2 detection, bold connected speaker, notification fixes.
 
+**Win32 Visual Modernisation**: ✅ Complete (2026-04-03). Added `resources/AirBeam.manifest` with Common Controls v6 dependency, Win7–Win11 `supportedOS` GUIDs, and PerMonitorV2 DPI awareness; embedded at link time via `/MANIFEST:EMBED`; `InitCommonControlsEx` moved to `WinMain`. Commit `92db9c9`.
+
+**Volume popup self-hide bug**: ✅ Fixed (2026-04-03). `WM_KILLFOCUS` now uses `IsChild()` check so popup stays open when focus moves to the trackbar child. Commit `ebd5a65`.
+
+**WASAPI correlation test**: ✅ Fixed (2026-04-03). `BestAlignedPearsonR` lag-search over one 1 kHz period eliminates failures from non-integer-ms WASAPI loopback latency. Commit `7756e25`.
+
 **Open gaps before v1.0 release:**
 - Disconnect menu item (not yet in tray menu)
-- VolumePopup implementation (IDM_VOLUME exists, implementation TBD)
+- In-menu volume slider (replace floating popup with owner-drawn slider in context menu)
 
 ---
 
