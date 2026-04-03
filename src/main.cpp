@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <objbase.h>  // CoInitializeEx / CoUninitialize
+#include <commctrl.h> // InitCommonControlsEx
 #include <cstring>    // strstr
 
 #include "core/AppController.h"
@@ -24,59 +25,79 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
     switch (msg) {
 
     case WM_TRAY_CALLBACK:
-        // Shell_NotifyIcon callback; lParam carries the notification event.
-        if (g_pApp) {
-            g_pApp->HandleTrayCallback(lParam);
-        }
+        if (g_pApp) g_pApp->HandleTrayCallback(lParam);
         return 0;
 
     case WM_TRAY_POPUP_MENU:
-        // Sent by a second instance (non-startup) to bring the menu into focus.
-        if (g_pApp) {
-            g_pApp->HandleCommand(IDM_SHOW_MENU);
-        }
+        if (g_pApp) g_pApp->HandleCommand(IDM_SHOW_MENU);
         return 0;
 
     case WM_COMMAND:
-        if (g_pApp) {
-            g_pApp->HandleCommand(LOWORD(wParam));
-        }
+        if (g_pApp) g_pApp->HandleCommand(LOWORD(wParam));
         return 0;
 
     case WM_RECEIVERS_UPDATED:
-        if (g_pApp) {
-            g_pApp->HandleReceiversUpdated();
-        }
+        if (g_pApp) g_pApp->HandleReceiversUpdated();
         return 0;
 
+    // ── ConnectionController messages ─────────────────────────────────────────
     case WM_RAOP_CONNECTED:
-        if (g_pApp) {
-            g_pApp->HandleRaopConnected(lParam);
-        }
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnRaopConnected(lParam);
         return 0;
 
     case WM_RAOP_FAILED:
-        if (g_pApp) {
-            g_pApp->HandleRaopFailed(lParam);
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnRaopFailed(lParam);
+        return 0;
+
+    case WM_STREAM_STOPPED:
+        if (g_pApp && g_pApp->GetCC()) {
+            g_pApp->GetCC()->OnStreamStopped();
+            g_pApp->HandleStreamStopped();
         }
         return 0;
 
+    case WM_AUDIO_DEVICE_LOST:
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnAudioDeviceLost();
+        return 0;
+
+    case WM_SPEAKER_LOST:
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnSpeakerLost(reinterpret_cast<const wchar_t*>(lParam));
+        return 0;
+
+    case WM_CAPTURE_ERROR:
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnCaptureError();
+        return 0;
+
+    case WM_ENCODER_ERROR:
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnEncoderError();
+        return 0;
+
+    case WM_DEVICE_DISCOVERED:
+        if (g_pApp && g_pApp->GetCC())
+            g_pApp->GetCC()->OnDeviceDiscovered(lParam);
+        return 0;
+
+    case WM_STREAM_STARTED:
+        if (g_pApp) g_pApp->HandleStreamStarted();
+        return 0;
+
+    // ── AppController-only messages ───────────────────────────────────────────
     case WM_BONJOUR_MISSING:
-        if (g_pApp) {
-            g_pApp->HandleBonjourMissing();
-        }
-        return 0;
-
-    case WM_DEFAULT_DEVICE_CHANGED:
-        if (g_pApp) {
-            g_pApp->HandleDefaultDeviceChanged();
-        }
+        if (g_pApp) g_pApp->HandleBonjourMissing();
         return 0;
 
     case WM_UPDATE_REJECTED:
-        if (g_pApp) {
-            g_pApp->HandleUpdateRejected();
-        }
+        if (g_pApp) g_pApp->HandleUpdateRejected();
+        return 0;
+
+    case WM_TIMER:
+        if (g_pApp) g_pApp->HandleTimer(wParam);
         return 0;
 
     case WM_ENDSESSION:
@@ -88,7 +109,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
         return 0;
 
     case WM_DESTROY:
-        // Tear down subsystems (removes tray icon, cleans up WinSparkle).
         if (g_pApp) {
             g_pApp->Shutdown();
             g_pApp = nullptr;
@@ -110,32 +130,24 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPSTR     lpCmdLine,
                    int       /*nCmdShow*/)
 {
-    // ── Parse --startup flag ─────────────────────────────────────────────────
-    // Set by the HKCU\Run entry so OS-triggered startup launches don't steal
-    // focus.  Must be parsed before the single-instance check (FR-013).
     const bool isStartupLaunch = (strstr(lpCmdLine, "--startup") != nullptr);
 
-    // ── Single-instance enforcement ──────────────────────────────────────────
     HANDLE hMutex = CreateMutexW(nullptr, FALSE, kMutexName);
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        // Another instance is running.  If this is NOT a startup launch, tell
-        // the existing instance to show its tray menu so the user sees it.
         if (!isStartupLaunch) {
             HWND hwndExisting = FindWindowW(kWindowClass, nullptr);
-            if (hwndExisting) {
-                PostMessageW(hwndExisting, WM_TRAY_POPUP_MENU, 0, 0);
-            }
+            if (hwndExisting) PostMessageW(hwndExisting, WM_TRAY_POPUP_MENU, 0, 0);
         }
-        if (hMutex) {
-            CloseHandle(hMutex);
-        }
+        if (hMutex) CloseHandle(hMutex);
         ExitProcess(0);
     }
 
-    // ── COM initialisation ───────────────────────────────────────────────────
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    // ── Register window class ────────────────────────────────────────────────
+    // Activate Common Controls v6 (visual styles)
+    INITCOMMONCONTROLSEX icc{ sizeof(INITCOMMONCONTROLSEX), ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES };
+    InitCommonControlsEx(&icc);
+
     WNDCLASSEXW wc   = {};
     wc.cbSize        = sizeof(wc);
     wc.lpfnWndProc   = WndProc;
@@ -143,23 +155,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
     wc.lpszClassName = kWindowClass;
     RegisterClassExW(&wc);
 
-    // ── Create hidden message window ─────────────────────────────────────────
-    // A regular (non-message-only) top-level window so FindWindowW in a future
-    // second instance can locate it.  Never shown (ShowWindow is never called).
-    HWND hwnd = CreateWindowExW(
-        0,
-        kWindowClass,
-        kWindowTitle,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 0, 0,
+    HWND hwnd = CreateWindowExW(0, kWindowClass, kWindowTitle,
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0,
         nullptr, nullptr, hInstance, nullptr);
 
-    // ── Initialise application ───────────────────────────────────────────────
     AppController app;
     g_pApp = &app;
 
     if (!app.Start(hInstance, hwnd, isStartupLaunch)) {
-        // Fatal init failure — clean up and exit.
         g_pApp = nullptr;
         DestroyWindow(hwnd);
         CoUninitialize();
@@ -167,19 +170,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
         return 1;
     }
 
-    // ── Message loop ─────────────────────────────────────────────────────────
     MSG msg = {};
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
 
-    // g_pApp was cleared inside WM_DESTROY; Shutdown() was called there too.
     g_pApp = nullptr;
-
-    // ── Cleanup ──────────────────────────────────────────────────────────────
     CoUninitialize();
     CloseHandle(hMutex);
-
     return static_cast<int>(msg.wParam);
 }

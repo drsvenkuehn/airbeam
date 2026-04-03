@@ -86,23 +86,8 @@ if(NOT alac_POPULATED)
     target_compile_definitions(alac_static PRIVATE TARGET_RT_LITTLE_ENDIAN=1)
 endif()
 
-# Optional resampler — libsamplerate (BSD-2-Clause)
-option(AIRBEAM_USE_RESAMPLER "Build with libsamplerate resampler" ON)
-if(AIRBEAM_USE_RESAMPLER)
-    FetchContent_Declare(
-        libsamplerate
-        GIT_REPOSITORY https://github.com/libsndfile/libsamplerate.git
-        GIT_TAG        0.2.2
-        GIT_SHALLOW    TRUE
-    )
-    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)  # don't build samplerate tests
-    FetchContent_MakeAvailable(libsamplerate)
-    # Suppress warnings in vendored libsamplerate (C4127 constant conditional etc.)
-    if(TARGET samplerate)
-        target_compile_options(samplerate PRIVATE /W0)
-    endif()
-    add_compile_definitions(AIRBEAM_HAS_RESAMPLER)
-endif()
+# speexdsp resampler — vendored BSD-3-Clause
+add_subdirectory(third_party/speexdsp)
 
 # ── Version header (configure_file) ─────────────────────────────────────────
 configure_file(
@@ -124,6 +109,8 @@ set(AIRBEAM_SOURCES
     src/core/AppController.cpp
     src/core/Config.cpp
     src/core/Logger.cpp
+    src/core/ConnectionController.cpp
+    src/core/StreamSession.cpp
 
     src/audio/WasapiCapture.cpp
     src/audio/AlacEncoderThread.cpp
@@ -179,6 +166,7 @@ target_compile_definitions(AirBeam PRIVATE
 target_link_libraries(AirBeam PRIVATE
     alac_static
     nlohmann_json::nlohmann_json
+    speexdsp_resampler
     # Win32 APIs
     ole32.lib
     oleaut32.lib
@@ -193,11 +181,13 @@ target_link_libraries(AirBeam PRIVATE
     ws2_32.lib     # Winsock
 )
 
-if(AIRBEAM_USE_RESAMPLER)
-    target_link_libraries(AirBeam PRIVATE samplerate)
+if(MSVC)
+    set_target_properties(AirBeam PROPERTIES
+        LINK_FLAGS "/MANIFEST:EMBED /MANIFESTINPUT:${CMAKE_CURRENT_SOURCE_DIR}/resources/AirBeam.manifest"
+    )
 endif()
 
-# ── Bonjour Print Services MSI — fetch and verify at build time ──────────────
+# ── Bonjour Print Services MSI— fetch and verify at build time ──────────────
 # Downloads BonjourPSSetup.exe from the pinned Apple CDN URL, verifies SHA-256,
 # and caches it at installer/deps/BonjourPSSetup.exe (gitignored).
 # Required by the NSIS installer script at makensis time.
