@@ -54,6 +54,34 @@ double PearsonR(const std::vector<int16_t>& a, const std::vector<int16_t>& b) {
     return (va == 0 || vb == 0) ? 0.0 : cov / std::sqrt(va * vb);
 }
 
+/// Finds the maximum |Pearson r| over integer lags [0, maxLag].
+/// For a pure 1 kHz tone the correlation is periodic with period ~88.2 stereo
+/// samples (44100 Hz × 2 ch / 1000 Hz), so searching one full period is enough
+/// to find the best phase alignment regardless of actual WASAPI loopback latency.
+double BestAlignedPearsonR(const std::vector<int16_t>& src,
+                           const std::vector<int16_t>& cap,
+                           int maxLag = 90) {
+    const int n = static_cast<int>(std::min(src.size(), cap.size()));
+    maxLag = std::min(maxLag, n - 1);
+    double bestAbsR = 0.0;
+    for (int lag = 0; lag <= maxLag; ++lag) {
+        const int len = n - lag;
+        double sa = 0.0, sb = 0.0;
+        for (int i = 0; i < len; ++i) { sa += src[i + lag]; sb += cap[i]; }
+        const double ma = sa / len, mb = sb / len;
+        double cov = 0.0, va = 0.0, vb = 0.0;
+        for (int i = 0; i < len; ++i) {
+            double da = src[i + lag] - ma, db = cap[i] - mb;
+            cov += da * db; va += da * da; vb += db * db;
+        }
+        if (va > 0.0 && vb > 0.0) {
+            double r = std::abs(cov / std::sqrt(va * vb));
+            if (r > bestAbsR) bestAbsR = r;
+        }
+    }
+    return bestAbsR;
+}
+
 // ── WasapiRenderer ───────────────────────────────────────────────────────────
 // Renders a continuous 1 kHz sine wave to the default audio render endpoint.
 // WasapiCapture's loopback will capture whatever this plays.
@@ -190,7 +218,7 @@ TEST(WasapiCorrelation, CrossCorrelationAbove0_99) {
         GTEST_SKIP() << "No default audio render endpoint (headless/CI environment)";
 
     // 2. Create ring buffer and start loopback capture.
-    auto ring = std::make_unique<SpscRingBuffer<AudioFrame, 128>>();
+    auto ring = std::make_unique<SpscRingBuffer<AudioFrame, 512>>();
     SpscRingBufferPtr ringPtr = ring.get();
 
     WasapiCapture capture;
@@ -231,10 +259,12 @@ TEST(WasapiCorrelation, CrossCorrelationAbove0_99) {
         GTEST_SKIP() << "No audio captured (silent device or loopback not available)";
     }
 
-    // 5. For a 1 kHz pure tone, any integer-millisecond loopback latency
-    //    maps to an integer number of full cycles so Pearson r ≈ 1.0.
-    double r = PearsonR(source, captured);
-    EXPECT_GT(r, 0.99) << "Pearson r=" << r
+    // 5. Search over one 1 kHz period (~88 stereo samples) for the best-aligned lag.
+    //    This eliminates failures caused by non-integer-ms WASAPI loopback latency:
+    //    for a pure tone, Pearson r is periodic, so one-period search finds peak r
+    //    regardless of actual delay.
+    double r = BestAlignedPearsonR(source, captured);
+    EXPECT_GT(r, 0.99) << "Best-aligned Pearson r=" << r
                        << " (expected >0.99 for 1 kHz loopback)";
 }
 
