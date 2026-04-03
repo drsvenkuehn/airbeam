@@ -28,6 +28,7 @@ public:
         uint8_t      aesKey[16]      = {};
         uint8_t      aesIv[16]       = {};
         float        volume          = 1.0f;  // linear [0,1]
+        bool         useEncryption   = true;  // false for et=0 devices (no RSA-AES)
         RetransmitBuffer* retransmit = nullptr;
         HWND         hwndMain        = nullptr;
     };
@@ -88,6 +89,8 @@ private:
     int               cseq_            = 1;
     std::string       sessionToken_;
     std::string       clientInstance_; // 16 random hex chars
+    std::string       dacpId_;         // 16 random uppercase hex chars (DACP session ID)
+    std::string       activeRemote_;   // random decimal (DACP active remote token)
 
     // Session identity (generated once per DoConnect)
     uint64_t          sessionId_       = 0;

@@ -11,9 +11,12 @@ struct AirPlayReceiver {
     std::wstring hostName;              ///< e.g. "AppleTV.local"
     std::string  ipAddress;             ///< dotted-decimal or IPv6 literal
     uint16_t     port                 = 5000;
-    bool         isAirPlay1Compatible = false; ///< false → AirPlay 2-only (unsupported)
+    bool         isAirPlay1Compatible = false; ///< true → speaks RAOP (AirPlay 1)
+    bool         isAirPlay2Only       = false; ///< true → pk present + no RSA-AES → AirPlay 2 only device
+    bool         supportsAes          = false; ///< true → RSA-AES encryption accepted
     std::string  macAddress;            ///< from TXT record "et" or "am" field
     std::string  deviceModel;           ///< e.g. "AppleTV3,2"
     std::string  protocolVersion;       ///< e.g. "130.14"
-    DWORD        lastSeenTick         = 0;  ///< GetTickCount() for stale-entry detection
+    std::wstring stableId;                  ///< stable MAC-based device ID (MAC prefix from instance name)
+    ULONGLONG    lastSeenTick         = 0;  ///< GetTickCount64() for stale-entry detection
 };

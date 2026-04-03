@@ -10,6 +10,7 @@
 #include "protocol/RsaKeyWrap.h"
 #include "protocol/VolumeMapper.h"
 #include "core/Messages.h"
+#include "core/Logger.h"
 
 #include <cstdio>
 #include <cstring>
@@ -193,6 +194,22 @@ bool RaopSession::DoConnect()
         clientInstance_ = hex;
     }
 
+    // DACP-ID: 16 uppercase hex chars; Active-Remote: random 32-bit decimal
+    // Required by many modern AirTunes receivers (JBL, Samsung, etc.)
+    {
+        uint8_t rnd[8] = {};
+        BCryptGenRandom(nullptr, rnd, 8, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        char hex[17];
+        snprintf(hex, sizeof(hex), "%02X%02X%02X%02X%02X%02X%02X%02X",
+                 rnd[0], rnd[1], rnd[2], rnd[3],
+                 rnd[4], rnd[5], rnd[6], rnd[7]);
+        dacpId_ = hex;
+
+        uint32_t ar = 0;
+        BCryptGenRandom(nullptr, reinterpret_cast<PUCHAR>(&ar), 4, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        activeRemote_ = std::to_string(ar);
+    }
+
     sessionId_ = NtpClock::NowNtp64();
 
     {
@@ -204,10 +221,13 @@ bool RaopSession::DoConnect()
 
     // 2. Pre-compute crypto material for ANNOUNCE --------------------------------
 
-    rsaAesKey_b64_ = RsaKeyWrap::Wrap(cfg_.aesKey);
-    if (rsaAesKey_b64_.empty()) return false;
+    if (cfg_.useEncryption) {
+        rsaAesKey_b64_ = RsaKeyWrap::Wrap(cfg_.aesKey);
+        if (rsaAesKey_b64_.empty()) return false;
+        aesIv_b64_ = Base64Encode(cfg_.aesIv, 16);
+    }
 
-    aesIv_b64_ = Base64Encode(cfg_.aesIv, 16);
+    LOG_DEBUG("RAOP: useEncryption=%d clientIp=%s", cfg_.useEncryption ? 1 : 0, cfg_.clientIp.c_str());
 
     cseq_ = 1;
     sessionToken_.clear();
@@ -261,15 +281,43 @@ bool RaopSession::DoConnect()
     setsockopt(tcpSock_, SOL_SOCKET, SO_RCVTIMEO,
                reinterpret_cast<const char*>(&rcvTimeout), sizeof(rcvTimeout));
 
+    // Resolve the actual local IP that was assigned by the OS for this connection
+    {
+        sockaddr_in localAddr{};
+        int localAddrLen = sizeof(localAddr);
+        if (getsockname(tcpSock_, reinterpret_cast<sockaddr*>(&localAddr), &localAddrLen) == 0) {
+            char ipBuf[INET_ADDRSTRLEN] = {};
+            inet_ntop(AF_INET, &localAddr.sin_addr, ipBuf, sizeof(ipBuf));
+            cfg_.clientIp = ipBuf;
+        }
+    }
+
     // 4. OPTIONS -----------------------------------------------------------------
 
-    if (!SendRtsp(BuildOptions())) return false;
-    if (ParseStatusCode(RecvRtspResponse()) != 200) return false;
+    LOG_DEBUG("RAOP: sending OPTIONS to %s:%u", cfg_.receiverIp.c_str(), cfg_.receiverPort);
+    std::string optionsMsg = BuildOptions();
+    if (!SendRtsp(optionsMsg)) { LOG_DEBUG("RAOP: OPTIONS send failed"); return false; }
+    {
+        std::string r = RecvRtspResponse();
+        int code = ParseStatusCode(r);
+        LOG_DEBUG("RAOP: OPTIONS response %d", code);
+        if (code != 200) return false;
+        // Log the full OPTIONS response so we can see Apple-Challenge etc.
+        LOG_DEBUG("RAOP: OPTIONS resp body:\n%s", r.c_str());
+    }
 
     // 5. ANNOUNCE ----------------------------------------------------------------
 
-    if (!SendRtsp(BuildAnnounce())) return false;
-    if (ParseStatusCode(RecvRtspResponse()) != 200) return false;
+    std::string announceMsg = BuildAnnounce();
+    LOG_DEBUG("RAOP: sending ANNOUNCE (len=%zu useEncryption=%d)\n%s",
+              announceMsg.size(), cfg_.useEncryption ? 1 : 0, announceMsg.c_str());
+    if (!SendRtsp(announceMsg)) { LOG_DEBUG("RAOP: ANNOUNCE send failed"); return false; }
+    {
+        std::string r = RecvRtspResponse();
+        int code = ParseStatusCode(r);
+        LOG_DEBUG("RAOP: ANNOUNCE response %d body:\n%s", code, r.c_str());
+        if (code != 200) return false;
+    }
 
     // 6. Bind UDP sockets (ephemeral ports) -------------------------------------
 
@@ -279,9 +327,15 @@ bool RaopSession::DoConnect()
 
     // 7. SETUP -------------------------------------------------------------------
 
-    if (!SendRtsp(BuildSetup())) return false;
+    LOG_DEBUG("RAOP: sending SETUP (audio=%u control=%u timing=%u)",
+              localAudioPort_, localControlPort_, localTimingPort_);
+    if (!SendRtsp(BuildSetup())) { LOG_DEBUG("RAOP: SETUP send failed"); return false; }
     std::string setupResp = RecvRtspResponse();
-    if (ParseStatusCode(setupResp) != 200) return false;
+    {
+        int code = ParseStatusCode(setupResp);
+        LOG_DEBUG("RAOP: SETUP response %d", code);
+        if (code != 200) return false;
+    }
 
     // Extract session token (strip optional ;timeout=N suffix and whitespace)
     sessionToken_ = ExtractHeader(setupResp, "Session");
@@ -306,8 +360,17 @@ bool RaopSession::DoConnect()
 
     // 8. RECORD ------------------------------------------------------------------
 
-    if (!SendRtsp(BuildRecord())) return false;
-    if (ParseStatusCode(RecvRtspResponse()) != 200) return false;
+    LOG_DEBUG("RAOP: sending RECORD (serverAudio=%u ctrl=%u timing=%u)",
+              serverAudioPort_, serverControlPort_, serverTimingPort_);
+    if (!SendRtsp(BuildRecord())) { LOG_DEBUG("RAOP: RECORD send failed"); return false; }
+    {
+        std::string r = RecvRtspResponse();
+        int code = ParseStatusCode(r);
+        LOG_DEBUG("RAOP: RECORD response %d", code);
+        if (code != 200) return false;
+    }
+
+    LOG_DEBUG("RAOP: handshake complete — streaming");
 
     // 9. Set up the target address used for all UDP sends -----------------------
 
@@ -403,6 +466,8 @@ std::string RaopSession::BuildOptions()
         << "CSeq: "            << cseq_++         << "\r\n"
         << "User-Agent: AirBeam/1.0\r\n"
         << "Client-Instance: " << clientInstance_ << "\r\n"
+        << "DACP-ID: "         << dacpId_         << "\r\n"
+        << "Active-Remote: "   << activeRemote_   << "\r\n"
         << "\r\n";
     return oss.str();
 }
@@ -414,13 +479,16 @@ std::string RaopSession::BuildAnnounce()
         cfg_.receiverIp,
         sessionId_,
         rsaAesKey_b64_,
-        aesIv_b64_);
+        aesIv_b64_,
+        cfg_.useEncryption);   // skip a=rsaaeskey/a=aesiv for et=0 devices
 
     std::ostringstream oss;
     oss << "ANNOUNCE " << rtspUrl_ << " RTSP/1.0\r\n"
         << "CSeq: "             << cseq_++         << "\r\n"
         << "User-Agent: AirBeam/1.0\r\n"
         << "Client-Instance: "  << clientInstance_ << "\r\n"
+        << "DACP-ID: "          << dacpId_         << "\r\n"
+        << "Active-Remote: "    << activeRemote_   << "\r\n"
         << "Content-Type: application/sdp\r\n"
         << "Content-Length: "   << sdp.size()      << "\r\n"
         << "\r\n"
