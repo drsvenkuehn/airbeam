@@ -14,6 +14,7 @@
 #include "localization/StringLoader.h"
 #include "discovery/AirPlayReceiver.h"
 #include "resource_ids.h"
+#include "core/Commands.h"
 
 void TrayMenu::Init(HINSTANCE hInst) {
     hInst_ = hInst;
@@ -44,19 +45,58 @@ std::vector<PopupItem> TrayMenu::BuildItems(
         items.push_back({ PopupItemType::Text, label, 0, false, true });
     } else {
         for (int i = 0; i < static_cast<int>(receivers.size()); ++i) {
-            std::wstring label = receivers[i].displayName;
-            if (receivers[i].isAirPlay2Only) {
-                label += L" (AirPlay 2)";
-            } else if (i == connectingReceiverIdx) {
-                std::wstring suffix = StringLoader::Load(IDS_MENU_CONNECTING);
-                if (suffix.empty()) suffix = L" \x2014 Connecting\x2026";
-                label += suffix;
+            const AirPlayReceiver& r = receivers[i];
+            std::wstring label = r.displayName;
+
+            if (r.supportsAirPlay2 && !r.isAirPlay1Compatible) {
+                // AP2-only device — show pairing status
+                const bool isPaired = (r.pairingState == PairingState::Paired);
+                const bool isPairing = (r.pairingState == PairingState::Pairing);
+                const bool isUnpaired = (r.pairingState == PairingState::Unpaired ||
+                                         r.pairingState == PairingState::Error ||
+                                         r.pairingState == PairingState::NotApplicable);
+
+                if (isPairing) {
+                    std::wstring suffix = StringLoader::Load(IDS_AP2_STATE_PAIRING);
+                    if (suffix.empty()) suffix = L"Pairing...";
+                    label += L" (" + suffix + L")";
+                } else if (isUnpaired) {
+                    std::wstring suffix = StringLoader::Load(IDS_AP2_STATE_UNPAIRED);
+                    if (suffix.empty()) suffix = L"Unpaired";
+                    label += L" (" + suffix + L")";
+                } else if (i == connectingReceiverIdx) {
+                    std::wstring suffix = StringLoader::Load(IDS_MENU_CONNECTING);
+                    if (suffix.empty()) suffix = L" \x2014 Connecting\x2026";
+                    label += suffix;
+                }
+                // AP2 devices are selectable (not greyed out) — click initiates pairing if needed
+                const bool checked = (i == connectedReceiverIdx);
+                items.push_back({ PopupItemType::Text, label,
+                                  IDM_DEVICE_BASE + static_cast<UINT>(i),
+                                  checked, false });
+
+                // "Forget device" option for paired AP2 speakers
+                if (isPaired) {
+                    std::wstring forgetLabel = L"  + ";
+                    std::wstring forgetStr = StringLoader::Load(IDS_AP2_FORGET_DEVICE);
+                    if (forgetStr.empty()) forgetStr = L"Forget Device";
+                    forgetLabel += forgetStr;
+                    items.push_back({ PopupItemType::Text, forgetLabel,
+                                      IDM_FORGET_DEVICE_BASE + static_cast<UINT>(i),
+                                      false, false });
+                }
+            } else {
+                // AirPlay 1 device (unchanged behaviour)
+                if (i == connectingReceiverIdx) {
+                    std::wstring suffix = StringLoader::Load(IDS_MENU_CONNECTING);
+                    if (suffix.empty()) suffix = L" - Connecting...";
+                    label += suffix;
+                }
+                const bool checked = (i == connectedReceiverIdx);
+                items.push_back({ PopupItemType::Text, label,
+                                  IDM_DEVICE_BASE + static_cast<UINT>(i),
+                                  checked, false });
             }
-            const bool checked = (i == connectedReceiverIdx);
-            const bool disabled = receivers[i].isAirPlay2Only;
-            items.push_back({ PopupItemType::Text, label,
-                              IDM_DEVICE_BASE + static_cast<UINT>(i),
-                              checked, disabled });
         }
     }
 
@@ -169,7 +209,7 @@ HMENU TrayMenu::BuildMenu(const Config& config,
             if (receivers[i].isAirPlay2Only)  label += L" (AirPlay 2)";
             else if (i == connectingReceiverIdx) {
                 std::wstring s = StringLoader::Load(IDS_MENU_CONNECTING);
-                if (s.empty()) s = L" \x2014 Connecting\x2026";
+                if (s.empty()) s = L" - Connecting...";
                 label += s;
             }
             UINT flags = MF_STRING;
@@ -186,7 +226,7 @@ HMENU TrayMenu::BuildMenu(const Config& config,
                 if (receivers[i].isAirPlay2Only) label += L" (AirPlay 2)";
                 else if (i == connectingReceiverIdx) {
                     std::wstring s = StringLoader::Load(IDS_MENU_CONNECTING);
-                    if (s.empty()) s = L" \x2014 Connecting\x2026";
+                    if (s.empty()) s = L" - Connecting...";
                     label += s;
                 }
                 UINT flags = MF_STRING;

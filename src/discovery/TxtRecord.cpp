@@ -96,6 +96,12 @@ void Parse(const unsigned char* txt, uint16_t len, AirPlayReceiver& out)
         else if (key == "pk")
         {
             pkPresent = true;
+            out.hapDevicePublicKey = value;  // base64-encoded Ed25519 device LTPK
+        }
+        else if (key == "vv")
+        {
+            // vv=2 indicates AirPlay 2 protocol version
+            // (informational — supportsAirPlay2 is set by pk presence)
         }
         else if (key == "am")
         {
@@ -121,6 +127,19 @@ void Parse(const unsigned char* txt, uint16_t len, AirPlayReceiver& out)
     out.isAirPlay2Only       = pkPresent && !etHas1;
     out.isAirPlay1Compatible = etHas1 && !out.isAirPlay2Only; // etHas1 implies !isAirPlay2Only
 
+    // AirPlay 2 support: any receiver with pk field supports AP2
+    out.supportsAirPlay2 = pkPresent;
+
+    // Set pairingState for AP2 receivers (actual pairing status loaded from CredentialStore)
+    if (out.supportsAirPlay2 && out.pairingState == PairingState::NotApplicable)
+        out.pairingState = PairingState::Unpaired;
+
+    // airPlay2Port: use port from _airplay._tcp browse (set by MdnsDiscovery for AP2 receivers).
+    // For _raop._tcp discoveries the RAOP port is in 'port' — AP2 defaults to 7000.
+    if (out.airPlay2Port == 7000 && out.supportsAirPlay2) {
+        // Keep default 7000; MdnsDiscovery can override after _airplay._tcp resolve
+    }
+
     // Use RSA-AES only when the device explicitly supports it (et=1 or non-zero hex).
     // If no et field at all, default to encryption (safer).
     // Devices that lack et=1 but connect anyway (AirPlay 2 only) won't reach this path.
@@ -144,7 +163,7 @@ void Parse(const unsigned char* txt, uint16_t len, AirPlayReceiver& out)
 
         constexpr std::size_t kMaxDisplayChars = 40;
         if (composed.length() > kMaxDisplayChars)
-            out.displayName = composed.substr(0, kMaxDisplayChars - 1) + L"\u2026";
+            out.displayName = composed.substr(0, kMaxDisplayChars - 1) + L"...";
         else
             out.displayName = composed;
     }
