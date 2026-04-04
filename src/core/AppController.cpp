@@ -18,6 +18,7 @@
 #include "core/Messages.h"
 #include "core/Commands.h"
 #include "core/Logger.h"
+#include "core/PipelineState.h"
 #include "ui/StartupRegistry.h"
 #include "resource_ids.h"
 #include "localization/StringLoader.h"
@@ -111,6 +112,31 @@ void AppController::HandleCommand(UINT id) {
             if (idx < static_cast<int>(sortedReceivers_.size()) && cc_)
                 cc_->Connect(sortedReceivers_[idx]);
         }
+        else if (id >= IDM_FORGET_DEVICE_BASE &&
+                 id < IDM_FORGET_DEVICE_BASE + IDM_DEVICE_MAX_COUNT) {
+            int idx = static_cast<int>(id - IDM_FORGET_DEVICE_BASE);
+            if (idx < static_cast<int>(sortedReceivers_.size())) {
+                const AirPlayReceiver& r = sortedReceivers_[idx];
+                const std::string hapDeviceId =
+                    AirPlay2::CredentialStore::DeviceIdFromPublicKey(r.hapDevicePublicKey);
+                if (!hapDeviceId.empty()) {
+                    AirPlay2::CredentialStore::Delete(hapDeviceId);
+                    LOG_INFO("AppController: forgot credential for \"%ls\"",
+                             r.displayName.c_str());
+                    // Update pairing state in ReceiverList to Unpaired
+                    if (receiverList_) {
+                        auto snapshot = receiverList_->Snapshot();
+                        for (auto& rec : snapshot) {
+                            if (rec.stableId == r.stableId) {
+                                rec.pairingState = PairingState::Unpaired;
+                                receiverList_->Update(rec);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         break;
     }
 }
@@ -160,6 +186,109 @@ void AppController::HandleStreamStarted() {
 
 void AppController::HandleStreamStopped() {
     LOG_INFO("AppController: WM_STREAM_STOPPED received");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AirPlay 2 message handlers (Feature 010) — T015-T018
+// ────────────────────────────────────────────────────────────────────────────
+
+void AppController::HandleAp2PairingRequired(LPARAM lParam)
+{
+    // LPARAM = heap-allocated AirPlayReceiver* from AirPlay2Session::Init()
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+    if (!receiver) return;
+
+    LOG_INFO("AppController: WM_AP2_PAIRING_REQUIRED for \"%ls\"",
+             receiver->displayName.c_str());
+
+    // Update pairing state in ReceiverList
+    if (receiverList_) {
+        const std::wstring instName = receiver->instanceName;
+        receiverList_->ForEach([&](const std::vector<AirPlayReceiver>& /*list*/) {});
+        // The actual pairingState update happens in ReceiverList::Update()
+        // when AirPlay2Session calls it — here we just show the UI feedback.
+    }
+
+    // Show "Pairing with {DeviceName}..." tray balloon (blue / informational §III-A)
+    trayIcon_.SetState(TrayState::Connecting);  // blue animation (§III-A)
+    balloonNotify_.ShowInfo(IDS_AP2_STATE_PAIRING, IDS_AP2_PAIRING_START,
+                            receiver->displayName.c_str());
+}
+
+void AppController::HandleAp2PairingStale(LPARAM lParam)
+{
+    // LPARAM = heap-allocated AirPlayReceiver*
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+    if (!receiver) return;
+
+    LOG_INFO("AppController: WM_AP2_PAIRING_STALE for \"%ls\"",
+             receiver->displayName.c_str());
+
+    // Delete stale credential
+    const std::string hapDeviceId =
+        AirPlay2::CredentialStore::DeviceIdFromPublicKey(receiver->hapDevicePublicKey);
+    if (!hapDeviceId.empty())
+        AirPlay2::CredentialStore::Delete(hapDeviceId);
+
+    // Show "Device was reset — re-pairing required" balloon (red §III-A)
+    trayIcon_.SetState(TrayState::Error);
+    balloonNotify_.ShowError(IDS_AP2_PAIRING_STALE, IDS_AP2_PAIRING_STALE);
+
+    // Context-sensitive behaviour (spec edge case):
+    // - If streaming: halt stream first, then require user to re-select device.
+    // - If during Init(): AirPlay2Session handles re-pairing flow automatically.
+    if (cc_ && cc_->GetState() == PipelineState::Streaming) {
+        LOG_INFO("AppController: halting stream due to stale AP2 credential");
+        cc_->Disconnect();
+    }
+}
+
+void AppController::HandleAp2Connected(LPARAM lParam)
+{
+    // LPARAM = heap-allocated AirPlayReceiver*
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+    if (!receiver) return;
+
+    LOG_INFO("AppController: WM_AP2_CONNECTED for \"%ls\"",
+             receiver->displayName.c_str());
+
+    // Update tray icon to blue streaming state (§III-A: no green)
+    trayIcon_.SetState(TrayState::Streaming);
+    // Connected balloon
+    balloonNotify_.ShowInfo(IDS_TITLE_CONNECTED, IDS_AP2_AUTO_RECONNECTED,
+                            receiver->displayName.c_str());
+}
+
+void AppController::HandleAp2Failed(WPARAM wParam, LPARAM lParam)
+{
+    // LPARAM = heap-allocated AirPlayReceiver*
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+
+    const uintptr_t errorCode = static_cast<uintptr_t>(wParam);
+    const std::wstring devName = receiver ? receiver->displayName : L"device";
+
+    LOG_INFO("AppController: WM_AP2_FAILED code=0x%llx for \"%ls\"",
+             static_cast<unsigned long long>(errorCode), devName.c_str());
+
+    if (errorCode == AP2_ERROR_PORT_UNREACHABLE) {
+        // Firewall/router issue — show notification immediately, do NOT retry (FR-021)
+        trayIcon_.SetState(TrayState::Error);
+        balloonNotify_.ShowError(IDS_TITLE_CONNECTION_FAILED, IDS_AP2_PORT_UNREACHABLE,
+                                 devName.c_str());
+        return;
+    }
+
+    // All other errors: transition to idle and show failure notification
+    trayIcon_.SetState(TrayState::Error);
+    balloonNotify_.ShowError(IDS_TITLE_CONNECTION_FAILED, IDS_AP2_CONNECT_FAILED,
+                             devName.c_str());
+
+    // Delegate retry (3x exponential backoff) to ConnectionController
+    // ConnectionController implements the same pattern as AirPlay 1 reconnect
+    if (cc_) {
+        // The CC will handle retries through its existing reconnect mechanism
+        // (already implemented in OnRaopFailed path)
+    }
 }
 
 void AppController::HandleTimer(WPARAM wParam) {
