@@ -51,4 +51,18 @@ BEGIN
     IDS_ERROR_NO_AUDIO_DEVICE      "No audio output device found."
     IDS_ENCODER_ERROR              "An audio error occurred. Please reconnect."
     IDS_AIRPLAY2_ONLY              "%s requires AirPlay 2. AirBeam currently supports AirPlay 1 speakers only."
+
+    IDS_AP2_PAIRING_START         "Pairing with %s..."
+    IDS_AP2_PAIRING_SUCCESS       "Paired with %s"
+    IDS_AP2_PAIRING_FAILED        "Pairing with %s failed. Please try again."
+    IDS_AP2_PAIRING_STALE         "Device was reset - re-pairing required."
+    IDS_AP2_PIN_PROMPT            "Enter the PIN shown on %s:"
+    IDS_AP2_FORGET_DEVICE         "Forget Device"
+    IDS_AP2_STATE_PAIRED          "Paired"
+    IDS_AP2_STATE_PAIRING         "Pairing..."
+    IDS_AP2_STATE_UNPAIRED        "Unpaired"
+    IDS_AP2_CONNECT_FAILED        "Cannot connect to %s."
+    IDS_AP2_RECONNECTING          "Reconnecting to %s..."
+    IDS_AP2_PORT_UNREACHABLE      "Cannot reach %s - check firewall or router settings."
+    IDS_AP2_AUTO_RECONNECTED      "Reconnected to %s"
 END

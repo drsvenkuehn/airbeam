@@ -50,4 +50,18 @@ BEGIN
     IDS_ERROR_NO_AUDIO_DEVICE      "Kein Audioausgabeger\xe4t gefunden."
     IDS_ENCODER_ERROR              "Audiofehler aufgetreten. Bitte neu verbinden."
     IDS_AIRPLAY2_ONLY              "%s ben\xf6tigt AirPlay 2. AirBeam unterst\xfctzt derzeit nur AirPlay-1-Lautsprecher."
+
+    IDS_AP2_PAIRING_START         "Kopplung mit %s..."
+    IDS_AP2_PAIRING_SUCCESS       "Gekoppelt mit %s"
+    IDS_AP2_PAIRING_FAILED        "Kopplung mit %s fehlgeschlagen. Bitte erneut versuchen."
+    IDS_AP2_PAIRING_STALE         "Ger\xe4t wurde zur\xfcckgesetzt - Neukopplung erforderlich."
+    IDS_AP2_PIN_PROMPT            "PIN eingeben, die auf %s angezeigt wird:"
+    IDS_AP2_FORGET_DEVICE         "Ger\xe4t vergessen"
+    IDS_AP2_STATE_PAIRED          "Gekoppelt"
+    IDS_AP2_STATE_PAIRING         "Kopplung..."
+    IDS_AP2_STATE_UNPAIRED        "Nicht gekoppelt"
+    IDS_AP2_CONNECT_FAILED        "Verbindung zu %s nicht m\xf6glich."
+    IDS_AP2_RECONNECTING          "Erneut verbinden mit %s..."
+    IDS_AP2_PORT_UNREACHABLE      "%s nicht erreichbar - Firewall- oder Router-Einstellungen pr\xfcfen."
+    IDS_AP2_AUTO_RECONNECTED      "Erneut verbunden mit %s"
 END
