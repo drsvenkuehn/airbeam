@@ -63,13 +63,15 @@ public:
 
     void SetVolume(float linear) override;  // HTTP/2 POST /controller
 
-    // ── Multi-room support ───────────────────────────────────────────────────
+    // ── Multi-room support (overrides StreamSession virtual no-ops) ──────────
 
     /// Sets the PTP reference timestamp to synchronise with other group members.
     /// Called by MultiRoomCoordinator before StartEncoder() in multi-room mode.
-    void SetPtpReferenceOffset(int64_t offsetNs);
+    /// Overrides the virtual no-op default added to StreamSession.h by T024.
+    void SetPtpReferenceOffset(int64_t offsetNs) override;
 
     /// Current PTP clock offset measured from the receiver (nanoseconds).
+    /// AirPlay2Session-specific; not part of StreamSession interface.
     int64_t PtpClockOffset() const;
 };
 ```
@@ -92,7 +94,7 @@ public:
 
 ## Invariants
 
-- `SetPtpReferenceOffset()` MUST be called before `StartEncoder()` in multi-room mode; ignored in single-speaker mode (defaults to 0).
-- `AirPlay2Session::Init()` MUST NOT be called if `IsPaired()` returns false; the pairing flow must complete first. If called when `IsPaired()` is false, `Init()` posts `WM_AP2_PAIRING_REQUIRED` and returns `false`; it is safe to call speculatively.
+- `SetPtpReferenceOffset()` MUST be called before `StartEncoder()` in multi-room mode; ignored in single-speaker mode (defaults to 0). It is callable via the `StreamSession*` interface — no cast to `AirPlay2Session*` required.
+- If called when `IsPaired()` is false, `Init()` posts `WM_AP2_PAIRING_REQUIRED` and returns `false`; it is safe to call speculatively.
 - All socket and WinHTTP handle cleanup happens in the destructor; callers need not explicitly close.
 - Thread safety: same model as `StreamSession` — all lifecycle methods called on Thread 1; capture/encode/RTSP run on their own threads.

@@ -134,7 +134,7 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 - **FR-010**: The system MUST stream ALAC-encoded audio to paired AirPlay 2 receivers with latency no greater than 2 seconds from capture to playback.
 - **FR-011**: The system MUST support volume control for AirPlay 2 receivers via the existing tray menu volume slider.
 - **FR-012**: The system MUST implement the AirPlay 2 timing protocol (Apple PTP clock synchronisation) to maintain synchronisation between audio sender and receiver.
-- **FR-013**: The system MUST handle AirPlay 2 encryption requirements for all audio packets (AES-128-GCM per-packet encryption with per-packet nonce derivation: `session_salt[4] ‖ rtp_seq[4]`).
+- **FR-013**: The system MUST handle AirPlay 2 encryption requirements for all audio packets (AES-128-GCM per-packet encryption; 12-byte nonce constructed as `session_salt[4] ‖ rtp_seq[4] ‖ 0x00000000[4]` — zero-padded to the required 96-bit width per research.md §2).
 - **FR-014**: Streaming MUST auto-reconnect to a previously paired AirPlay 2 speaker on startup if discovered within 5 seconds (matching v1.0 behaviour).
 
 **Multi-Room (P2 scope)**
