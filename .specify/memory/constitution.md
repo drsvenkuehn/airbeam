@@ -1,12 +1,11 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.4.1 → 1.4.2  (PATCH — §Toolchain resampling bullet expanded to approve
-  libspeexdsp as a third resampler option alongside libsamplerate and r8brain-free-src)
-Modified principles: none
+Version change: 1.4.2 → 1.5.0  (MINOR — §VI formal scope expansion note added to approve
+  AirPlay 2 / HomeKit pairing and multi-room as post-v1.0 scope via feature 010 amendment procedure)
+Modified principles: §VI — Strict Scope Discipline
 Modified sections:
-  - Platform & Toolchain Constraints — Resampling bullet: added libspeexdsp as approved option
-    with integer-only API rationale, license note (BSD-3-Clause), and vendored-path reference.
+  - §VI: added "Formal scope expansion (v2.0+)" paragraph documenting approved amendment
 Added sections: N/A
 Removed sections: N/A
 Templates reviewed:
@@ -130,7 +129,14 @@ The following capabilities are EXPLICITLY deferred and MUST NOT be implemented i
 Any proposal to implement a deferred capability MUST result in a formal version-scope discussion
 and explicit agreement before work begins.
 
-**Rationale**: Scope creep in audio-protocol software introduces subtle bugs in already-tested
+**Formal scope expansion (v2.0+)**: AirPlay 2 / HomeKit pairing and multi-room simultaneous
+streaming have been formally approved as a post-v1.0 scope expansion via feature spec
+`specs/010-airplay2-support/spec.md` (branch `010-airplay2-support`). The amendment procedure
+was completed 2026-04-04 (48-hour reflection observed; sole maintainer self-approval). These
+capabilities MUST NOT be backported to any v1.x build tagged before the feature branch is merged
+into `main`.
+
+**Rationale**: Scope creep in audio-protocol softwareintroduces subtle bugs in already-tested
 paths. A clean, well-defined v1.0 non-goals list protects quality and release confidence.
 
 ### VII. MIT-Compatible Licensing (NON-NEGOTIABLE)
@@ -324,4 +330,4 @@ principles in this document before merge.
 section validating compliance with all eight principles. Any non-compliance MUST be explicitly
 justified and documented in the plan's Complexity Tracking table.
 
-**Version**: 1.4.2 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-31
+**Version**: 1.5.0 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-04-04

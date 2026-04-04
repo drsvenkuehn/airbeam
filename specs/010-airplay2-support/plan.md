@@ -13,8 +13,9 @@ Add AirPlay 2 sender support to AirBeam so users can stream system audio to Home
 **Primary Dependencies**:
 - libsodium (ISC / MIT-compatible) — Ed25519, X25519, ChaCha20-Poly1305
 - csrp (BSD-2-Clause) — SRP-6a for HAP pairing PIN exchange
+- OpenSSL 3.x (Apache-2.0) — implicit dependency of csrp for SRP-6a bignum operations (SHA-256, HMAC, BN arithmetic); Apache-2.0 is MIT-compatible
 - Advapi32.lib (Windows built-in) — Windows Credential Manager (`CredWriteW` / `CredReadW`)
-- nghttp2 or WinHTTP HTTP/2 — AirPlay 2 control channel (see research.md §3)
+- WinHTTP (Windows built-in, 1903+) — HTTP/2 + TLS for AirPlay 2 control channel (replaces nghttp2; see research.md §3)
 - Existing: Apple ALAC, Bonjour SDK, speexdsp, WinSparkle  
 
 **Storage**: Windows Credential Manager (DPAPI-backed) for HAP pairing credentials; existing `config.json` for multi-room group preferences  
@@ -37,13 +38,13 @@ Add AirPlay 2 sender support to AirBeam so users can stream system audio to Home
 | Principle | Status | Notes |
 |-----------|--------|-------|
 | I — RT Audio Thread Safety | ✅ Pass | AirPlay 2 session/pairing runs on Thread 5 or worker; Threads 3 & 4 hot path unchanged. AesGcmCipher pre-allocated before streaming loop. |
-| II — AirPlay 1 / RAOP Protocol Fidelity | ✅ Pass | AirPlay 1 code paths (`src/protocol/`) are untouched. Protocol routing is in `ConnectionController`; AirPlay 1 receivers use existing `RaopSession`. FR-019 & FR-020 enforce non-regression. |
+| II — AirPlay 1 / RAOP Protocol Fidelity | ✅ Pass | AirPlay 1 code paths (`src/protocol/`) are untouched. Protocol routing is in `ConnectionController`; AirPlay 1 receivers use existing `RaopSession`. FR-019 & FR-020 enforce non-regression. The §II prohibition ("EXPLICITLY out of scope for v1.0") is scoped to v1.0 only; AirPlay 2 is a formally approved post-v1.0 scope expansion per the §Governance amendment completed 2026-04-04 (constitution.md bumped to v1.5.0). |
 | III — Native Win32, No External UI Frameworks | ✅ Pass | Pairing flow uses tray balloon notifications + existing `CustomPopup` dialog extension for PIN input (Win32 `DialogBox`). No external UI frameworks added. |
 | III-A — Visual Color Palette | ✅ Pass | Pairing-in-progress = blue (active), pairing error = red (error), paired checkbox = blue accent. No green. Must be enforced in implementation. |
 | IV — Test-Verified Correctness | ⚠️ GATE | New crypto paths (HAP SRP-6a, Ed25519 sign/verify, AES-128-GCM) MUST have unit tests. HAP handshake must be integration-tested. All existing tests must pass (FR-019). |
 | V — Observable Failures | ✅ Pass | Stale-credential re-pair, pairing failure, speaker drop, firewall port block all surface tray notifications per spec. |
-| VI — Strict Scope Discipline | ℹ️ Justified | AirPlay 2 and multi-room were deferred in v1.0 constitution. This feature IS the formal post-v1.0 scope expansion. The constitution's amendment procedure has been satisfied by creating this feature spec. |
-| VII — MIT-Compatible Licensing | ⚠️ GATE | libsodium (ISC ✅), csrp (BSD-2-Clause ✅), nghttp2 (MIT ✅) — all compatible. No GPL dependency permitted. Verified in research.md §1. |
+| VI — Strict Scope Discipline | ✅ Pass | AirPlay 2 and multi-room were deferred in v1.0 constitution. Formal §Governance amendment completed 2026-04-04: feature spec created, 48-hour reflection observed, sole-maintainer self-approval, constitution.md updated to v1.5.0 with §VI scope expansion note. |
+| VII — MIT-Compatible Licensing | ⚠️ GATE | libsodium (ISC ✅), csrp (BSD-2-Clause ✅), OpenSSL 3.x (Apache-2.0 ✅), WinHTTP (Windows built-in ✅) — all compatible. No GPL dependency permitted. Verified in research.md §1. |
 | VIII — Localizable UI | ⚠️ GATE | All new user-facing strings (pairing prompts, error messages, "Forget device", PIN dialog) MUST go into locale resource files for all 7 locales (en, de, fr, es, ja, zh-Hans, ko) before merge. |
 
 **Post-Phase-1 re-check**: Re-validate III-A (color use in multi-select UI) and VIII (all strings externalized) after contracts are defined.

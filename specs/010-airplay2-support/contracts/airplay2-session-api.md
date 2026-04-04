@@ -50,6 +50,8 @@ public:
     bool IsCaptureRunning() const override;
 
     /// Sends HTTP/2 SETUP to receiver. Posts WM_AP2_CONNECTED on success.
+    /// NOTE: method name inherited from StreamSession virtual interface; in AirPlay2Session
+    /// this performs an HTTP/2 SETUP POST to /audio — NOT an RTSP ANNOUNCE as in RaopSession.
     void StartRaop(float volume) override;  // name inherited; semantics = HTTP/2 SETUP
 
     void StopRaop()              override;
@@ -76,13 +78,13 @@ public:
 
 ## Win32 Messages Posted by AirPlay2Session
 
-| Message constant | WParam | LParam | Meaning |
-|-----------------|--------|--------|---------|
-| `WM_AP2_PAIRING_REQUIRED` | — | `AirPlayReceiver*` | Device not paired; initiates pairing flow |
-| `WM_AP2_PAIRING_STALE` | — | `AirPlayReceiver*` | Credential rejected by device (factory reset) |
-| `WM_AP2_CONNECTED` | — | — | HTTP/2 SETUP succeeded; streaming may begin |
-| `WM_AP2_FAILED` | error code | — | Connection failed; triggers retry/notification |
-| `WM_AP2_SPEAKER_DROPPED` | — | `AirPlayReceiver*` | One multi-room speaker disconnected |
+| Message constant | WParam | LParam | Meaning | Ownership |
+|-----------------|--------|--------|---------|-----------|
+| `WM_AP2_PAIRING_REQUIRED` | — | `AirPlayReceiver*` | Device not paired; initiates pairing flow | **Sole poster: `AirPlay2Session::Init()`** when `IsPaired()` is false. `ConnectionController` and `HapPairing` MUST NOT post this message directly. |
+| `WM_AP2_PAIRING_STALE` | — | `AirPlayReceiver*` | Credential rejected by device (factory reset) | Posted by `AirPlay2Session` on HAP auth rejection |
+| `WM_AP2_CONNECTED` | — | — | HTTP/2 SETUP succeeded; streaming may begin | Posted by `AirPlay2Session::StartRaop()` |
+| `WM_AP2_FAILED` | error code | — | Connection failed; triggers retry/notification | Posted by `AirPlay2Session`; NOT posted on `kTLVError_Authentication` (use `WM_AP2_PAIRING_STALE` instead) |
+| `WM_AP2_SPEAKER_DROPPED` | — | `AirPlayReceiver*` | One multi-room speaker disconnected | Posted by `AirPlay2Session` on connection loss |
 
 (These constants are defined in `src/core/Messages.h` alongside existing WM_RAOP_* messages.)
 
@@ -91,6 +93,6 @@ public:
 ## Invariants
 
 - `SetPtpReferenceOffset()` MUST be called before `StartEncoder()` in multi-room mode; ignored in single-speaker mode (defaults to 0).
-- `AirPlay2Session::Init()` MUST NOT be called if `IsPaired()` returns false; the pairing flow must complete first.
+- `AirPlay2Session::Init()` MUST NOT be called if `IsPaired()` returns false; the pairing flow must complete first. If called when `IsPaired()` is false, `Init()` posts `WM_AP2_PAIRING_REQUIRED` and returns `false`; it is safe to call speculatively.
 - All socket and WinHTTP handle cleanup happens in the destructor; callers need not explicitly close.
 - Thread safety: same model as `StreamSession` — all lifecycle methods called on Thread 1; capture/encode/RTSP run on their own threads.

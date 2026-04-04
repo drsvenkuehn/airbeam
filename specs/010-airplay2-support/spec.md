@@ -101,11 +101,11 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 
 ### Edge Cases
 
-- What happens when the user's local network blocks the additional ports required by AirPlay 2 (mDNS, PTP, control/audio TCP/UDP ports)?
+- What happens when the user's local network blocks the additional ports required by AirPlay 2 (mDNS, PTP, control/audio TCP/UDP ports)? → AirBeam MUST detect the unreachable port and surface a tray notification with firewall remediation guidance (FR-021). No silent failure.
 - **Stale credentials (factory-reset device)**: If the connection attempt is rejected by the device because stored credentials are invalid, AirBeam MUST automatically delete the stale credential and re-initiate the pairing flow, surfacing a tray notification: "Device was reset — re-pairing required."
 - **Concurrent AirBeam instances**: Not applicable — single-instance is enforced by a named OS mutex (`Global\AirBeam_SingleInstance`) from v1.0. Only one AirBeam process can run at a time.
-- How does the system handle a HomePod that switches to a different Apple ID while AirBeam is streaming?
-- What is the behaviour when a multi-room group member briefly disconnects due to Wi-Fi interference and then reconnects mid-stream?
+- **HomePod switches Apple ID while streaming**: Treat as a stale-credential event — post `WM_AP2_PAIRING_STALE`, auto-delete the credential, surface the "Device was reset — re-pairing required" notification, and halt the stream. No automatic mid-session reconnect is attempted.
+- **Multi-room group member disconnects and reconnects mid-stream**: Treat as a speaker drop (`WM_AP2_SPEAKER_DROPPED`) — remove the dropped session from the group, continue streaming to remaining speakers uninterrupted (FR-018). The reconnected speaker does NOT automatically re-join the active group; the user must re-select it.
 - **Mixed-protocol selection**: Selecting an AirPlay 1 speaker while AirPlay 2 speakers are active (or vice versa) MUST automatically deselect the other protocol's speakers. The tray menu enforces protocol-exclusive selection; no mixed-protocol multi-room group can exist.
 
 ---
@@ -133,14 +133,14 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 
 - **FR-010**: The system MUST stream ALAC-encoded audio to paired AirPlay 2 receivers with latency no greater than 2 seconds from capture to playback.
 - **FR-011**: The system MUST support volume control for AirPlay 2 receivers via the existing tray menu volume slider.
-- **FR-012**: The system MUST implement the AirPlay 2 timing protocol to maintain synchronisation between audio sender and receiver.
-- **FR-013**: The system MUST handle AirPlay 2 encryption requirements for all audio packets.
+- **FR-012**: The system MUST implement the AirPlay 2 timing protocol (Apple PTP clock synchronisation) to maintain synchronisation between audio sender and receiver.
+- **FR-013**: The system MUST handle AirPlay 2 encryption requirements for all audio packets (AES-128-GCM per-packet encryption with per-packet nonce derivation: `session_salt[4] ‖ rtp_seq[4]`).
 - **FR-014**: Streaming MUST auto-reconnect to a previously paired AirPlay 2 speaker on startup if discovered within 5 seconds (matching v1.0 behaviour).
 
 **Multi-Room (P2 scope)**
 
 - **FR-015**: The system MUST allow the user to select two or more paired AirPlay 2 speakers simultaneously from the tray menu using independent checkboxes (multi-check toggle).
-- **FR-015a**: AirPlay 1 speakers MUST retain single-select (radio) behaviour. Selecting an AirPlay 1 speaker MUST automatically deselect all active AirPlay 2 speakers, and selecting any AirPlay 2 speaker MUST automatically deselect any active AirPlay 1 speaker.
+- **FR-022**: AirPlay 1 speakers MUST retain single-select (radio) behaviour. Selecting an AirPlay 1 speaker MUST automatically deselect all active AirPlay 2 speakers, and selecting any AirPlay 2 speaker MUST automatically deselect any active AirPlay 1 speaker.
 - **FR-016**: When multiple speakers are selected, the system MUST deliver audio to all of them with synchronised timing (< 10 ms offset).
 - **FR-017**: Volume control in multi-room mode MUST include both a global slider affecting all speakers and per-speaker controls.
 - **FR-018**: If one speaker in a multi-room group drops, streaming to remaining speakers MUST continue uninterrupted.
@@ -149,6 +149,7 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 
 - **FR-019**: All AirPlay 1 (RAOP) functionality from v1.0 MUST remain fully operational and untouched for AirPlay 1-only devices.
 - **FR-020**: For devices supporting both protocols, the system MUST prefer AirPlay 2 and fall back to AirPlay 1 only when AirPlay 2 pairing is not available.
+- **FR-021**: If AirPlay 2 control port (default 7000), RTP audio port, or PTP timing port are unreachable after a connection attempt, the system MUST surface a tray notification: *"Cannot reach {DeviceName} — check firewall or router settings"* (red, §III-A) and abort the connection attempt without retry.
 
 ### Key Entities
 
