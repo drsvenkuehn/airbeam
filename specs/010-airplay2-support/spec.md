@@ -16,6 +16,18 @@ AirPlay 2 differs from AirPlay 1 (RAOP) in three key ways:
 
 ---
 
+## Clarifications
+
+### Session 2026-04-04
+
+- Q: What identifier ties a stored pairing credential to a specific physical speaker across network changes? → A: HAP Device ID — the stable UUID assigned at manufacture and exchanged during the HAP pairing ceremony. Survives IP reassignment, mDNS name changes, and device renames.
+- Q: When stored credentials are rejected by a factory-reset device, what should happen? → A: Automatically detect the rejection, delete the stale credential, and re-initiate the pairing flow — surfacing a tray notification explaining that the device was reset and re-pairing is in progress.
+- Q: How should multi-speaker selection work in the tray menu? → A: AirPlay 2 speakers use independent checkboxes (multiple can be active simultaneously). AirPlay 1 speakers retain single-select radio behaviour. Selecting an AirPlay 1 speaker deselects all active AirPlay 2 speakers, and selecting any AirPlay 2 speaker deselects any active AirPlay 1 speaker.
+- Q: Is there a maximum number of AirPlay 2 speakers active simultaneously in a multi-room group? → A: 6 speakers maximum (matches Apple's own AirPlay 2 group limit; keeps synchronisation complexity bounded).
+- Q: What happens if two AirBeam instances simultaneously attempt to pair or stream to the same AirPlay 2 device? → A: Not applicable — AirBeam already enforces single-instance via a named OS mutex (`Global\AirBeam_SingleInstance`) inherited from v1.0. Two instances cannot run concurrently.
+
+---
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Stream to AirPlay 2-Only Speaker (Priority: P1)
@@ -90,11 +102,11 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 ### Edge Cases
 
 - What happens when the user's local network blocks the additional ports required by AirPlay 2 (mDNS, PTP, control/audio TCP/UDP ports)?
-- What happens if pairing credentials are stored but the speaker has been factory-reset by the owner — the stored credentials are now invalid?
-- What happens if two instances of AirBeam attempt to pair or stream to the same AirPlay 2 device simultaneously?
+- **Stale credentials (factory-reset device)**: If the connection attempt is rejected by the device because stored credentials are invalid, AirBeam MUST automatically delete the stale credential and re-initiate the pairing flow, surfacing a tray notification: "Device was reset — re-pairing required."
+- **Concurrent AirBeam instances**: Not applicable — single-instance is enforced by a named OS mutex (`Global\AirBeam_SingleInstance`) from v1.0. Only one AirBeam process can run at a time.
 - How does the system handle a HomePod that switches to a different Apple ID while AirBeam is streaming?
 - What is the behaviour when a multi-room group member briefly disconnects due to Wi-Fi interference and then reconnects mid-stream?
-- What happens if the user selects an AirPlay 2 speaker and AirPlay 1 speaker together for multi-room — is mixed-protocol multi-room supported?
+- **Mixed-protocol selection**: Selecting an AirPlay 1 speaker while AirPlay 2 speakers are active (or vice versa) MUST automatically deselect the other protocol's speakers. The tray menu enforces protocol-exclusive selection; no mixed-protocol multi-room group can exist.
 
 ---
 
@@ -127,7 +139,8 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 
 **Multi-Room (P2 scope)**
 
-- **FR-015**: The system MUST allow the user to select two or more paired AirPlay 2 speakers simultaneously from the tray menu.
+- **FR-015**: The system MUST allow the user to select two or more paired AirPlay 2 speakers simultaneously from the tray menu using independent checkboxes (multi-check toggle).
+- **FR-015a**: AirPlay 1 speakers MUST retain single-select (radio) behaviour. Selecting an AirPlay 1 speaker MUST automatically deselect all active AirPlay 2 speakers, and selecting any AirPlay 2 speaker MUST automatically deselect any active AirPlay 1 speaker.
 - **FR-016**: When multiple speakers are selected, the system MUST deliver audio to all of them with synchronised timing (< 10 ms offset).
 - **FR-017**: Volume control in multi-room mode MUST include both a global slider affecting all speakers and per-speaker controls.
 - **FR-018**: If one speaker in a multi-room group drops, streaming to remaining speakers MUST continue uninterrupted.
@@ -139,9 +152,9 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 
 ### Key Entities
 
-- **AirPlay 2 Receiver**: A network-discoverable speaker or audio device that implements the AirPlay 2 protocol. Key attributes: name, network address, pairing state, protocol capabilities, volume level.
-- **Pairing Credential**: The cryptographic material established during the one-time pairing ceremony. Persisted per device. Required for every subsequent connection.
-- **Multi-Room Group**: A user-defined set of two or more simultaneously active receivers. Attributes: member list, active state, group volume.
+- **AirPlay 2 Receiver**: A network-discoverable speaker or audio device that implements the AirPlay 2 protocol. Key attributes: name, network address, pairing state, protocol capabilities, volume level. **Identity**: uniquely identified by its HAP Device ID (stable UUID exchanged during pairing; survives IP changes and device renames).
+- **Pairing Credential**: The cryptographic material established during the one-time pairing ceremony. Keyed by the device's HAP Device ID. Persisted per device. Required for every subsequent connection.
+- **Multi-Room Group**: A user-defined set of two or more simultaneously active AirPlay 2 receivers. Attributes: member list (max 6 speakers), active state, group volume.
 - **Stream Session (AirPlay 2)**: An active audio stream to one AirPlay 2 receiver. Distinct from the v1.0 RAOP session; manages timing, encryption, and control via the AirPlay 2 protocol.
 
 ---
@@ -154,7 +167,7 @@ Existing v1.0 users who stream to AirPlay 1 (RAOP) receivers must not be affecte
 - **SC-002**: First-time pairing with an AirPlay 2 speaker completes within 30 seconds under normal network conditions.
 - **SC-003**: Audio begins playing on a previously paired AirPlay 2 speaker within 3 seconds of selecting it in the tray menu.
 - **SC-004**: End-to-end audio latency (capture to playback) does not exceed 2 seconds for a single AirPlay 2 target.
-- **SC-005**: In multi-room mode, audio across all active speakers is synchronised within a perceptibly echo-free threshold (< 10 ms measured offset).
+- **SC-005**: In multi-room mode (up to 6 simultaneous AirPlay 2 speakers), audio across all active speakers is synchronised within a perceptibly echo-free threshold (< 10 ms measured offset).
 - **SC-006**: Pairing credentials survive AirBeam restarts and Windows reboots — no re-pairing required after initial setup.
 - **SC-007**: All existing v1.0 AirPlay 1 tests pass without modification after AirPlay 2 support is added.
 - **SC-008**: AirBeam can stream continuously to an AirPlay 2 speaker for 24 hours without audio dropout, crash, or memory growth exceeding 10 MB above baseline.
