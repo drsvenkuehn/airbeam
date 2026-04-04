@@ -13,9 +13,11 @@ if(MSVC)
         /permissive- # strict conformance
         /WX          # warnings as errors
         /MP          # parallel compilation
+        /EHsc        # standard C++ exception handling (required; not in ci preset CXX_FLAGS_DEBUG)
         # Suppress spurious warnings from third-party headers
         /wd4100      # unreferenced formal parameter (ALAC headers)
         /wd4702      # unreachable code (ALAC headers)
+        /wd4530      # C++ exception handler used, but unwind semantics not enabled (googletest)
     )
     add_compile_definitions(
         WIN32_LEAN_AND_MEAN
@@ -60,7 +62,65 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 
+# libsodium (ISC) — crypto primitives for HAP pairing (Ed25519, X25519, ChaCha20-Poly1305)
+FetchContent_Declare(
+    libsodium
+    GIT_REPOSITORY https://github.com/jedisct1/libsodium.git
+    GIT_TAG        1.0.20
+    GIT_SHALLOW    TRUE
+)
+
 FetchContent_MakeAvailable(nlohmann_json googletest)
+
+# ── OpenSSL 3.x (Apache-2.0) — required by csrp SRP-6a ─────────────────────
+find_package(OpenSSL REQUIRED)
+
+# ── libsodium — build static library from FetchContent ──────────────────────
+FetchContent_GetProperties(libsodium)
+if(NOT libsodium_POPULATED)
+    FetchContent_Populate(libsodium)
+endif()
+
+# libsodium ships a CMakeLists.txt only in the cmake-build branch.
+# We build the amalgamation manually for maximum portability.
+file(GLOB_RECURSE LIBSODIUM_SOURCES
+    "${libsodium_SOURCE_DIR}/src/libsodium/*.c"
+)
+
+# Remove assembly files (not needed for x64 MSVC — C intrinsics suffice)
+list(FILTER LIBSODIUM_SOURCES EXCLUDE REGEX "\\.S$|\\.asm$")
+
+add_library(sodium STATIC ${LIBSODIUM_SOURCES})
+target_include_directories(sodium PUBLIC
+    "${libsodium_SOURCE_DIR}/src/libsodium/include"
+    "${libsodium_SOURCE_DIR}/src/libsodium/include/sodium"
+)
+# Generate sodium/version.h from template if needed
+if(EXISTS "${libsodium_SOURCE_DIR}/src/libsodium/include/sodium/version.h.in")
+    configure_file(
+        "${libsodium_SOURCE_DIR}/src/libsodium/include/sodium/version.h.in"
+        "${libsodium_SOURCE_DIR}/src/libsodium/include/sodium/version.h"
+        @ONLY
+    )
+endif()
+target_compile_definitions(sodium PUBLIC
+    SODIUM_STATIC
+    SODIUM_EXPORT=
+)
+target_compile_definitions(sodium PRIVATE
+    _CRT_SECURE_NO_WARNINGS
+)
+target_compile_options(sodium PRIVATE /W0)  # suppress libsodium warnings
+
+# ── csrp — vendored SRP-6a (BSD-2-Clause) ───────────────────────────────────
+add_library(csrp STATIC
+    third_party/csrp/srp.c
+)
+target_include_directories(csrp PUBLIC
+    third_party/csrp/
+)
+target_link_libraries(csrp PUBLIC OpenSSL::Crypto)
+target_compile_options(csrp PRIVATE /W0)
 
 # ALAC — build only the codec library
 FetchContent_GetProperties(alac)
@@ -139,6 +199,14 @@ set(AIRBEAM_SOURCES
     src/update/SparkleIntegration.cpp
 
     src/localization/StringLoader.cpp
+
+    # AirPlay 2 module (Feature 010)
+    src/airplay2/CredentialStore.cpp
+    src/airplay2/HapPairing.cpp
+    src/airplay2/AesGcmCipher.cpp
+    src/airplay2/PtpClock.cpp
+    src/airplay2/AirPlay2Session.cpp
+    src/ui/PinDialog.cpp
 )
 
 set(AIRBEAM_RESOURCES
@@ -155,6 +223,8 @@ target_include_directories(AirBeam PRIVATE
     src/
     ${CMAKE_BINARY_DIR}/generated/
     ${CMAKE_SOURCE_DIR}/resources/
+    ${libsodium_SOURCE_DIR}/src/libsodium/include
+    ${CMAKE_SOURCE_DIR}/third_party/csrp/
 )
 
 target_compile_definitions(AirBeam PRIVATE
@@ -168,6 +238,9 @@ target_link_libraries(AirBeam PRIVATE
     alac_static
     nlohmann_json::nlohmann_json
     speexdsp_resampler
+    sodium
+    csrp
+    OpenSSL::Crypto
     # Win32 APIs
     ole32.lib
     oleaut32.lib
@@ -182,6 +255,8 @@ target_link_libraries(AirBeam PRIVATE
     gdi32.lib
     advapi32.lib
     ws2_32.lib     # Winsock
+    winhttp.lib    # WinHTTP (AirPlay 2 HTTP/2 control)
+    crypt32.lib    # CryptProtectData for CredentialStore
 )
 
 if(MSVC)

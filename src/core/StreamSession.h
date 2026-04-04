@@ -93,6 +93,11 @@ public:
     /// Sends RTSP SET_PARAMETER to propagate volume to receiver (Thread 5 picks it up).
     virtual void SetVolume(float linear);
 
+    /// Set the PTP reference clock offset for multi-room coordination.
+    /// Default no-op; overridden by AirPlay2Session.
+    /// Thread-safe — called from MultiRoomCoordinator on Thread 5.
+    virtual void SetPtpReferenceOffset(int64_t /*ns*/) {}
+
     // ── Accessors ────────────────────────────────────────────────────────────
 
     virtual const AirPlayReceiver& Target() const { return target_; }

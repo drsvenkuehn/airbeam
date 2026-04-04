@@ -139,6 +139,14 @@ void MdnsDiscovery::ThreadProc()
         return;
     }
 
+    // Start second browse for _airplay._tcp (AP2-only devices — HomePod etc.)
+    // Failure is non-fatal — _raop._tcp alone is sufficient for AP1 devices.
+    f.Browse(
+        &browseRef2_,
+        0, 0,
+        "_airplay._tcp", "local.",
+        BrowseCallback2, this);
+
     ULONGLONG lastPrune = GetTickCount64();
 
     while (!stopFlag_.load(std::memory_order_acquire))
@@ -147,6 +155,7 @@ void MdnsDiscovery::ThreadProc()
         // add/remove entries from pendingResolves_ don't invalidate iteration.
         std::vector<DnsServiceRef_t> activeRefs;
         activeRefs.push_back(browseRef_);
+        if (browseRef2_) activeRefs.push_back(browseRef2_);
         for (const auto& slot : pendingResolves_)
         {
             if (slot.resolveRef)  activeRefs.push_back(slot.resolveRef);
@@ -205,7 +214,8 @@ void MdnsDiscovery::ThreadProc()
         if (slot.resolveRef)  { f.RefDeallocate(slot.resolveRef);  slot.resolveRef  = nullptr; }
     }
     pendingResolves_.clear();
-    if (browseRef_) { f.RefDeallocate(browseRef_); browseRef_ = nullptr; }
+    if (browseRef2_) { f.RefDeallocate(browseRef2_); browseRef2_ = nullptr; }
+    if (browseRef_)  { f.RefDeallocate(browseRef_);  browseRef_  = nullptr; }
 
     running_.store(false, std::memory_order_release);
 }
@@ -384,3 +394,67 @@ void MdnsDiscovery::AddrInfoCallback(
 
     removeSlot();
 }
+
+// ---------------------------------------------------------------------------
+// BrowseCallback2 — _airplay._tcp service added or removed (AP2-only devices)
+// ---------------------------------------------------------------------------
+// This callback handles devices that advertise _airplay._tcp but NOT _raop._tcp
+// (e.g. Apple HomePod 2nd gen, AirPlay 2-only speakers).  Resolve pipeline is
+// identical to BrowseCallback.  If ReceiverList already has a matching stableId
+// from a previous _raop._tcp discovery, Update() merges/updates the record.
+// ---------------------------------------------------------------------------
+
+void MdnsDiscovery::BrowseCallback2(
+    DnsServiceRef_t /*sdRef*/, DnsServiceFlags_t flags, uint32_t interfaceIndex,
+    DnsServiceError_t errorCode,
+    const char* serviceName, const char* /*regtype*/, const char* replyDomain,
+    void* context)
+{
+    if (errorCode != kErrNoError) return;
+
+    auto* self = static_cast<MdnsDiscovery*>(context);
+    const std::wstring instanceName = Utf8ToWide(serviceName);
+
+    if ((flags & kFlagsAdd) == 0)
+    {
+        // Service removed — use same WM_SPEAKER_LOST / Remove() path.
+        // Only post if not already handled by _raop._tcp callback.
+        LOG_DEBUG("mDNS: _airplay removed \"%ls\"", instanceName.c_str());
+        // ReceiverList::Remove is idempotent so safe to call from both paths.
+        self->list_.Remove(instanceName);
+        // Do NOT post WM_SPEAKER_LOST here — _raop._tcp callback already did it
+        // if the device also advertised _raop._tcp.  For purely AP2-only devices
+        // the _raop._tcp callback never fires, so we must post here.
+        if (self->hwndMain_) {
+            const size_t n = instanceName.size();
+            wchar_t* heapStr = new wchar_t[n + 1];
+            wmemcpy(heapStr, instanceName.c_str(), n + 1);
+            PostMessageW(self->hwndMain_, WM_SPEAKER_LOST, 0,
+                         reinterpret_cast<LPARAM>(heapStr));
+        }
+        return;
+    }
+
+    const BonjourFuncs& f = self->loader_.Funcs();
+    self->pendingResolves_.push_back({});
+    PendingResolve& slot = self->pendingResolves_.back();
+    slot.owner                  = self;
+    slot.interfaceIndex         = interfaceIndex;
+    slot.receiver               = AirPlayReceiver{};
+    slot.receiver.instanceName  = instanceName;
+    slot.receiver.displayName   = instanceName; // will be refined by TxtRecord::Parse
+    slot.receiver.stableId      = DeviceIdFromInstance(instanceName);
+
+    LOG_DEBUG("mDNS: _airplay add \"%ls\" (if=%u) — resolving...",
+              instanceName.c_str(), interfaceIndex);
+
+    const DnsServiceError_t err = f.Resolve(
+        &slot.resolveRef,
+        0, interfaceIndex,
+        serviceName, "_airplay._tcp", replyDomain,
+        ResolveCallback, &slot);
+
+    if (err != kErrNoError)
+        self->pendingResolves_.pop_back();
+}
+

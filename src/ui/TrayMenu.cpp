@@ -89,7 +89,7 @@ std::vector<PopupItem> TrayMenu::BuildItems(
                 // AirPlay 1 device (unchanged behaviour)
                 if (i == connectingReceiverIdx) {
                     std::wstring suffix = StringLoader::Load(IDS_MENU_CONNECTING);
-                    if (suffix.empty()) suffix = L" - Connecting...";
+                    if (suffix.empty()) suffix = L" \x2014 Connecting\x2026";
                     label += suffix;
                 }
                 const bool checked = (i == connectedReceiverIdx);
@@ -209,7 +209,7 @@ HMENU TrayMenu::BuildMenu(const Config& config,
             if (receivers[i].isAirPlay2Only)  label += L" (AirPlay 2)";
             else if (i == connectingReceiverIdx) {
                 std::wstring s = StringLoader::Load(IDS_MENU_CONNECTING);
-                if (s.empty()) s = L" - Connecting...";
+                if (s.empty()) s = L" \x2014 Connecting\x2026";
                 label += s;
             }
             UINT flags = MF_STRING;
@@ -226,7 +226,7 @@ HMENU TrayMenu::BuildMenu(const Config& config,
                 if (receivers[i].isAirPlay2Only) label += L" (AirPlay 2)";
                 else if (i == connectingReceiverIdx) {
                     std::wstring s = StringLoader::Load(IDS_MENU_CONNECTING);
-                    if (s.empty()) s = L" - Connecting...";
+                    if (s.empty()) s = L" \x2014 Connecting\x2026";
                     label += s;
                 }
                 UINT flags = MF_STRING;

@@ -16,3 +16,6 @@ constexpr UINT IDM_DISCONNECT            = 1008; // disconnect from current spea
 // Range 2000–2099: dynamic receiver items (index = id - IDM_DEVICE_BASE)
 constexpr UINT IDM_DEVICE_BASE           = 2000;
 constexpr UINT IDM_DEVICE_MAX_COUNT      = 100;
+
+// Range 2200–2299: per-device "Forget" commands (index = id - IDM_FORGET_DEVICE_BASE)
+constexpr UINT IDM_FORGET_DEVICE_BASE    = 2200;

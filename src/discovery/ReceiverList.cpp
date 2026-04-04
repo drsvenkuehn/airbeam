@@ -37,29 +37,60 @@ ReceiverList::~ReceiverList()
 
 void ReceiverList::Update(const AirPlayReceiver& receiver)
 {
-    // Accept AirPlay 1 compatible devices and AirPlay 2-only devices (shown
-    // in the menu with an informational label). Silently drop anything else
-    // (e.g. MFiSAP-only devices that speak neither protocol).
-    if (!receiver.isAirPlay1Compatible && !receiver.isAirPlay2Only)
+    // Accept:
+    //   - AirPlay 1 compatible devices
+    //   - AirPlay 2-only devices (isAirPlay2Only=true from _raop._tcp, no RSA-AES)
+    //   - AirPlay 2 capable devices (supportsAirPlay2=true from _airplay._tcp)
+    // Silently drop anything else (e.g. MFiSAP-only with no usable protocol).
+    if (!receiver.isAirPlay1Compatible &&
+        !receiver.isAirPlay2Only &&
+        !receiver.supportsAirPlay2)
     {
         LOG_WARN("ReceiverList: \"%ls\" filtered (unsupported protocol)",
                  receiver.instanceName.c_str());
         return;
     }
-    if (receiver.isAirPlay2Only)
+    if (receiver.supportsAirPlay2 && !receiver.isAirPlay1Compatible)
     {
-        LOG_INFO("ReceiverList: \"%ls\" added as AirPlay 2-only (will show with label)",
+        LOG_INFO("ReceiverList: \"%ls\" added as AirPlay 2 device (pk present)",
                  receiver.instanceName.c_str());
     }
 
     EnterCriticalSection(&cs_);
 
+    // First try to match by instanceName (exact match)
     auto it = std::find_if(receivers_.begin(), receivers_.end(),
         [&receiver](const AirPlayReceiver& r)
         { return r.instanceName == receiver.instanceName; });
 
+    if (it == receivers_.end())
+    {
+        // If not found by instanceName, try to match by stableId.
+        // This handles the case where the same physical device is discovered
+        // via both _raop._tcp and _airplay._tcp with different instance names.
+        if (!receiver.stableId.empty())
+        {
+            it = std::find_if(receivers_.begin(), receivers_.end(),
+                [&receiver](const AirPlayReceiver& r)
+                { return !r.stableId.empty() && r.stableId == receiver.stableId; });
+        }
+    }
+
     if (it != receivers_.end())
-        *it = receiver;
+    {
+        // Merge: preserve pairingState and hapDevicePublicKey if already loaded.
+        // Keep the richer of the two records (prefer the one with pk/AP2 info).
+        AirPlayReceiver merged = receiver;
+        if (merged.hapDevicePublicKey.empty() && !it->hapDevicePublicKey.empty())
+            merged.hapDevicePublicKey = it->hapDevicePublicKey;
+        if (!merged.supportsAirPlay2 && it->supportsAirPlay2)
+            merged.supportsAirPlay2 = it->supportsAirPlay2;
+        // Keep existing pairingState (loaded from CredentialStore, not from mDNS)
+        if (it->pairingState != PairingState::NotApplicable &&
+            it->pairingState != PairingState::Unpaired)
+            merged.pairingState = it->pairingState;
+        *it = merged;
+    }
     else
         receivers_.push_back(receiver);
 

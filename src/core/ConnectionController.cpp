@@ -16,6 +16,7 @@
 #include "core/Messages.h"
 #include "resource_ids.h"
 #include "localization/StringLoader.h"
+#include "airplay2/AirPlay2Session.h"
 
 #include <string>
 #include <cassert>
@@ -105,20 +106,37 @@ void ConnectionController::BeginConnect(const AirPlayReceiver& target)
     currentTargetInstance_ = target.instanceName;
     CC_TRACE(L"[CC] BeginConnect → %ls", target.displayName.c_str());
 
+    // ── Protocol selection (T025): use AirPlay 2 session for AP2-capable devices.
+    // If the device supports AirPlay 2 (has pk field), use AirPlay2Session.
+    // If the device only speaks AirPlay 1, use the default session factory.
+    const bool useAp2 = target.supportsAirPlay2;
+    if (useAp2) {
+        CC_TRACE(L"[CC] BeginConnect: protocol=AirPlay2 for \"%ls\"",
+                 target.displayName.c_str());
+        session_ = std::make_unique<AirPlay2::AirPlay2Session>();
+    } else if (sessionFactory_) {
+        session_ = sessionFactory_();
+    } else {
+        session_ = std::make_unique<StreamSession>();
+    }
+
     // Pre-allocate all session resources on Thread 1 before any thread starts
-    session_ = sessionFactory_();
     if (!session_ || !session_->Init(target, config_.lowLatency, hwnd_)) {
         CC_TRACE(L"[CC] BeginConnect: session Init failed");
         session_.reset();
-        balloon_.ShowError(IDS_TITLE_CONNECTION_FAILED, IDS_BALLOON_CONNECTION_FAILED,
-                           target.displayName.c_str());
+        // For AP2 sessions, Init() posts WM_AP2_PAIRING_REQUIRED or WM_AP2_FAILED
+        // internally — don't double-post a connection-failed balloon.
+        if (!useAp2) {
+            balloon_.ShowError(IDS_TITLE_CONNECTION_FAILED, IDS_BALLOON_CONNECTION_FAILED,
+                               target.displayName.c_str());
+        }
         return;
     }
 
     // Start capture thread (Thread 3)
     session_->StartCapture();
 
-    // Start RAOP RTSP handshake (Thread 5) — async; posts WM_RAOP_CONNECTED or WM_RAOP_FAILED
+    // Start RAOP/AP2 handshake (Thread 5) — async; posts WM_RAOP_CONNECTED / WM_AP2_CONNECTED
     session_->StartRaop(config_.volume);
 
     TransitionTo(PipelineState::Connecting);
@@ -247,14 +265,10 @@ void ConnectionController::CancelReconnect()
 
 void ConnectionController::Connect(const AirPlayReceiver& target)
 {
-    // Reject AirPlay 2-only devices before attempting any connection.
-    if (target.isAirPlay2Only) {
-        LOG_WARN("CC: \"%ls\" is AirPlay 2-only — not supported in v1.0",
-                 target.displayName.c_str());
-        balloon_.ShowWarning(IDS_TITLE_AIRPLAY2_ONLY, IDS_AIRPLAY2_ONLY,
-                             target.displayName.c_str());
-        return;
-    }
+    // Allow AirPlay 2 devices — reject only if device is exclusively AP2
+    // AND we have no credential to pair with (pre-pairing not initiated yet).
+    // The actual pairing flow is handled inside AirPlay2Session::Init().
+    // The old "isAirPlay2Only" guard is removed in Feature 010.
 
     switch (state_) {
     case PipelineState::Idle:
@@ -448,6 +462,82 @@ void ConnectionController::OnRaopFailed(LPARAM /*lParam*/)
         // attempt stays at 0 — will be incremented in AttemptReconnect()
     }
 
+    BeginDisconnect(/*forReconnect=*/true);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OnAp2Connected — WM_AP2_CONNECTED (Thread 5 → Thread 1)  [T026]
+// ─────────────────────────────────────────────────────────────────────────────
+
+void ConnectionController::OnAp2Connected(LPARAM lParam)
+{
+    // Consume the heap-allocated receiver
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+
+    if (state_ != PipelineState::Connecting) {
+        CC_TRACE(L"[CC] OnAp2Connected ignored in state %d", static_cast<int>(state_));
+        return;
+    }
+
+    if (!session_) {
+        CC_TRACE(L"[CC] OnAp2Connected: no session");
+        return;
+    }
+
+    CC_TRACE(L"[CC] OnAp2Connected — initialising encoder");
+
+    // Initialise ALAC encoder (Thread 1 alloc OK)
+    const uint32_t ssrc = static_cast<uint32_t>(GetTickCount64() & 0xFFFFFFFF);
+    if (!session_->InitEncoder(ssrc, hwnd_)) {
+        CC_TRACE(L"[CC] OnAp2Connected: encoder init failed");
+        BeginDisconnect(/*forReconnect=*/true);
+        return;
+    }
+
+    session_->StartEncoder();
+    config_.lastDevice = session_->Target().stableId;
+
+    TransitionTo(PipelineState::Streaming);
+
+    // Post WM_STREAM_STARTED so AppController updates the tray menu
+    PostMessageW(hwnd_, WM_STREAM_STARTED, 0, 0);
+
+    if (receiver) {
+        balloon_.ShowInfo(IDS_TITLE_CONNECTED, IDS_BALLOON_CONNECTED,
+                          receiver->displayName.c_str());
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OnAp2Failed — WM_AP2_FAILED (Thread 5 → Thread 1)  [T027]
+// ─────────────────────────────────────────────────────────────────────────────
+
+void ConnectionController::OnAp2Failed(WPARAM wParam, LPARAM lParam)
+{
+    // Consume the heap-allocated receiver
+    std::unique_ptr<AirPlayReceiver> receiver(reinterpret_cast<AirPlayReceiver*>(lParam));
+
+    if (state_ != PipelineState::Connecting && state_ != PipelineState::Streaming) {
+        CC_TRACE(L"[CC] OnAp2Failed ignored in state %d", static_cast<int>(state_));
+        return;
+    }
+
+    const uintptr_t errorCode = static_cast<uintptr_t>(wParam);
+    CC_TRACE(L"[CC] OnAp2Failed code=0x%llX", static_cast<uint64_t>(errorCode));
+
+    if (errorCode == AP2_ERROR_PORT_UNREACHABLE) {
+        // Firewall/router issue — do NOT retry (FR-021)
+        CC_TRACE(L"[CC] OnAp2Failed: port unreachable — no retry");
+        CancelReconnect();
+        BeginDisconnect(/*forReconnect=*/false);
+        return;
+    }
+
+    // For all other errors: schedule reconnect (same exponential backoff as AirPlay 1)
+    if (!reconnect_.pending && session_) {
+        reconnect_.pending      = true;
+        reconnect_.targetDevice = session_->Target();
+    }
     BeginDisconnect(/*forReconnect=*/true);
 }
 

@@ -58,6 +58,21 @@
 #define IDS_ENCODER_ERROR             1045  // "Audio encoder error. Please reconnect."
 #define IDS_AIRPLAY2_ONLY             1046  // "%s requires AirPlay 2 (not supported)."
 
+// ── Feature 010: AirPlay 2 pairing and streaming (1060–1072) ─────────────────
+#define IDS_AP2_PAIRING_START         1060  // "Pairing with %s…"
+#define IDS_AP2_PAIRING_SUCCESS       1061  // "Paired with %s"
+#define IDS_AP2_PAIRING_FAILED        1062  // "Pairing with %s failed. Please try again."
+#define IDS_AP2_PAIRING_STALE         1063  // "Device was reset — re-pairing required"
+#define IDS_AP2_PIN_PROMPT            1064  // "Enter the PIN shown on %s:"
+#define IDS_AP2_FORGET_DEVICE         1065  // "Forget Device"
+#define IDS_AP2_STATE_PAIRED          1066  // "Paired"
+#define IDS_AP2_STATE_PAIRING         1067  // "Pairing…"
+#define IDS_AP2_STATE_UNPAIRED        1068  // "Unpaired"
+#define IDS_AP2_CONNECT_FAILED        1069  // "Cannot connect to %s."
+#define IDS_AP2_RECONNECTING          1070  // "Reconnecting to %s…"
+#define IDS_AP2_PORT_UNREACHABLE      1071  // "Cannot reach %s — check firewall or router settings."
+#define IDS_AP2_AUTO_RECONNECTED      1072  // "Reconnected to %s"
+
 // ── Compile-time URL constants ─────────────────────────────────────────────
 #ifdef __cplusplus
 constexpr wchar_t BONJOUR_DOWNLOAD_URL[] =

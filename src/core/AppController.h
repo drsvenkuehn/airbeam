@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include <thread>
 
 #include "core/Logger.h"
 #include "core/Config.h"
@@ -16,6 +17,7 @@
 #include "discovery/ReceiverList.h"
 #include "discovery/BonjourLoader.h"
 #include "discovery/MdnsDiscovery.h"
+#include "airplay2/CredentialStore.h"
 
 // Top-level orchestrator.  Owns all subsystems and dispatches Win32 messages.
 // Lifetime: created on the stack in WinMain before the message loop.
@@ -60,6 +62,24 @@ public:
 
     // Called when WM_STREAM_STOPPED arrives — update tray menu (hide Disconnect).
     void HandleStreamStopped();
+
+    // ── AirPlay 2 message handlers (Feature 010) ─────────────────────────────
+
+    // WM_AP2_PAIRING_REQUIRED: start HapPairing worker, show "Pairing…" balloon.
+    // LPARAM = heap-allocated AirPlayReceiver* (delete after use).
+    void HandleAp2PairingRequired(LPARAM lParam);
+
+    // WM_AP2_PAIRING_STALE: stale credential — delete + show "re-pair" balloon.
+    // LPARAM = heap-allocated AirPlayReceiver* (delete after use).
+    void HandleAp2PairingStale(LPARAM lParam);
+
+    // WM_AP2_CONNECTED: update tray icon (blue streaming), enable volume slider.
+    // LPARAM = heap-allocated AirPlayReceiver* (delete after use).
+    void HandleAp2Connected(LPARAM lParam);
+
+    // WM_AP2_FAILED: handle session failure with optional retry logic.
+    // WPARAM = AP2_ERROR_* code. LPARAM = heap-allocated AirPlayReceiver*.
+    void HandleAp2Failed(WPARAM wParam, LPARAM lParam);
 
     // WM_TIMER dispatch — forwards CC timer IDs to cc_, handles others internally.
     void HandleTimer(WPARAM wParam);

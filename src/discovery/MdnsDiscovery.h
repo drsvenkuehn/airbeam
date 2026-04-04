@@ -47,6 +47,13 @@ private:
         const char* serviceName, const char* regtype, const char* replyDomain,
         void* context);
 
+    /// Browse callback for _airplay._tcp (AP2-only devices such as HomePod)
+    static void BrowseCallback2(
+        DnsServiceRef_t sdRef, DnsServiceFlags_t flags, uint32_t interfaceIndex,
+        DnsServiceError_t errorCode,
+        const char* serviceName, const char* regtype, const char* replyDomain,
+        void* context);
+
     static void ResolveCallback(
         DnsServiceRef_t sdRef, DnsServiceFlags_t flags, uint32_t interfaceIndex,
         DnsServiceError_t errorCode,
@@ -67,8 +74,9 @@ private:
     std::atomic<bool> running_{false};
     std::thread       thread_;
 
-    // Active browse ref — lives for the duration of Thread 2
-    DnsServiceRef_t   browseRef_ = nullptr;
+    // Active browse refs — live for the duration of Thread 2
+    DnsServiceRef_t   browseRef_  = nullptr;  ///< _raop._tcp browse
+    DnsServiceRef_t   browseRef2_ = nullptr;  ///< _airplay._tcp browse (AP2-only devices)
 
     /// Per-device resolve slot.  One entry exists for each device currently in
     /// the Browse→Resolve→AddrInfo pipeline.  std::list gives stable addresses

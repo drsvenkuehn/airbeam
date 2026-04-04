@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <cstdint>
 
 constexpr UINT WM_TRAY_CALLBACK      = WM_APP + 1;
 constexpr UINT WM_TRAY_POPUP_MENU    = WM_APP + 2;
@@ -47,3 +48,29 @@ constexpr UINT WM_DEVICE_DISCOVERED  = WM_APP + 13;
 /// Posted by AlacEncoderThread on unexpected thread exit (not clean Stop()).
 /// WPARAM: HRESULT error code  LPARAM: 0
 constexpr UINT WM_ENCODER_ERROR      = WM_APP + 14;
+
+// ── AirPlay 2 messages (Feature 010) ─────────────────────────────────────────
+
+/// HAP pairing ceremony required for this receiver.
+/// LPARAM: heap-allocated AirPlayReceiver* — caller must delete after handling.
+constexpr UINT WM_AP2_PAIRING_REQUIRED = WM_APP + 15;
+
+/// Stored credential is stale (device was factory-reset or key mismatch).
+/// LPARAM: heap-allocated AirPlayReceiver* — caller must delete after handling.
+constexpr UINT WM_AP2_PAIRING_STALE    = WM_APP + 16;
+
+/// AirPlay 2 stream is live and audio is flowing.
+/// LPARAM: heap-allocated AirPlayReceiver* — caller must delete after handling.
+constexpr UINT WM_AP2_CONNECTED        = WM_APP + 17;
+
+/// AirPlay 2 session failed. WPARAM = error code (see AP2_ERROR_*).
+/// LPARAM: heap-allocated AirPlayReceiver* — caller must delete after handling.
+constexpr UINT WM_AP2_FAILED           = WM_APP + 18;
+
+/// AirPlay 2 speaker dropped mid-stream (network loss, device restart).
+/// LPARAM: heap-allocated AirPlayReceiver* — caller must delete after handling.
+constexpr UINT WM_AP2_SPEAKER_DROPPED  = WM_APP + 19;
+
+/// Error code for WM_AP2_FAILED: AP2 control port is unreachable.
+/// AppController shows firewall notification; does NOT retry (FR-021).
+constexpr uintptr_t AP2_ERROR_PORT_UNREACHABLE = 0xAB200001UL;

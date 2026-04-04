@@ -93,6 +93,12 @@ public:
     void OnDeviceDiscovered(LPARAM lParam);   ///< WM_DEVICE_DISCOVERED (auto-connect check)
     void OnTimer(UINT timerId);               ///< WM_TIMER dispatch
 
+    // ── AirPlay 2 message handlers (Feature 010) ─────────────────────────────
+    /// WM_AP2_CONNECTED — AP2 stream is live; transition Connecting → Streaming.
+    void OnAp2Connected(LPARAM lParam);
+    /// WM_AP2_FAILED — AP2 session failed; schedule retry or post balloon.
+    void OnAp2Failed(WPARAM wParam, LPARAM lParam);
+
     // ── Queries ───────────────────────────────────────────────────────────────
 
     PipelineState GetState() const noexcept { return state_; }

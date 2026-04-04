@@ -163,7 +163,7 @@ void Parse(const unsigned char* txt, uint16_t len, AirPlayReceiver& out)
 
         constexpr std::size_t kMaxDisplayChars = 40;
         if (composed.length() > kMaxDisplayChars)
-            out.displayName = composed.substr(0, kMaxDisplayChars - 1) + L"...";
+            out.displayName = composed.substr(0, kMaxDisplayChars - 1) + L"\u2026";
         else
             out.displayName = composed;
     }

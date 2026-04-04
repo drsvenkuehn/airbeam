@@ -18,12 +18,16 @@ set(UNIT_TEST_SOURCES
     unit/test_resampler.cpp
     unit/test_wasapi_stop_start.cpp
     unit/test_connection_controller.cpp
+    unit/test_credential_store.cpp
+    unit/test_hap_pairing.cpp
+    unit/test_aes_gcm.cpp
 )
 
 # ── Integration tests ────────────────────────────────────────────────────────
 set(INTEGRATION_TEST_SOURCES
     integration/test_wasapi_correlation.cpp
     integration/test_raop_shairport.cpp
+    integration/test_airplay2_session.cpp
 )
 
 # ── E2E tests ────────────────────────────────────────────────────────────────
@@ -55,6 +59,13 @@ set(TEST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/CustomPopup.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BalloonNotify.cpp
     ${CMAKE_SOURCE_DIR}/src/localization/StringLoader.cpp
+    # AirPlay 2 sources
+    ${CMAKE_SOURCE_DIR}/src/airplay2/CredentialStore.cpp
+    ${CMAKE_SOURCE_DIR}/src/airplay2/HapPairing.cpp
+    ${CMAKE_SOURCE_DIR}/src/airplay2/AesGcmCipher.cpp
+    ${CMAKE_SOURCE_DIR}/src/airplay2/PtpClock.cpp
+    ${CMAKE_SOURCE_DIR}/src/airplay2/AirPlay2Session.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PinDialog.cpp
 )
 
 # ── AirBeamTests executable ──────────────────────────────────────────────────
@@ -68,6 +79,9 @@ add_executable(AirBeamTests
 target_include_directories(AirBeamTests PRIVATE
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_BINARY_DIR}/generated/
+    ${CMAKE_SOURCE_DIR}/resources/
+    ${libsodium_SOURCE_DIR}/src/libsodium/include
+    ${CMAKE_SOURCE_DIR}/third_party/csrp/
 )
 
 target_compile_definitions(AirBeamTests PRIVATE
@@ -84,6 +98,9 @@ target_link_libraries(AirBeamTests PRIVATE
     alac_static
     nlohmann_json::nlohmann_json
     speexdsp_resampler
+    sodium
+    csrp
+    OpenSSL::Crypto
     ole32.lib
     oleaut32.lib
     avrt.lib
@@ -96,6 +113,8 @@ target_link_libraries(AirBeamTests PRIVATE
     gdi32.lib
     comctl32.lib  # Common controls (TrayIcon, BalloonNotify)
     dwmapi.lib    # CustomPopup: DwmSetWindowAttribute
+    winhttp.lib   # WinHTTP (AirPlay 2 HTTP/2 control)
+    crypt32.lib   # CryptProtectData for CredentialStore
 )
 
 # ── CTest registration────────────────────────────────────────────────────────

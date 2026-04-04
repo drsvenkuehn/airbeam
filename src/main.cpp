@@ -87,6 +87,30 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
         if (g_pApp) g_pApp->HandleStreamStarted();
         return 0;
 
+    // ── AirPlay 2 messages (Feature 010) ─────────────────────────────────────
+    case WM_AP2_PAIRING_REQUIRED:
+        if (g_pApp) g_pApp->HandleAp2PairingRequired(lParam);
+        return 0;
+
+    case WM_AP2_PAIRING_STALE:
+        if (g_pApp) g_pApp->HandleAp2PairingStale(lParam);
+        return 0;
+
+    case WM_AP2_CONNECTED:
+        if (g_pApp) {
+            // Route to both ConnectionController and AppController
+            if (g_pApp->GetCC()) g_pApp->GetCC()->OnAp2Connected(lParam);
+            // Note: lParam ownership transferred to CC; AppController gets its own copy
+        }
+        return 0;
+
+    case WM_AP2_FAILED:
+        if (g_pApp) {
+            if (g_pApp->GetCC()) g_pApp->GetCC()->OnAp2Failed(wParam, lParam);
+            else g_pApp->HandleAp2Failed(wParam, lParam);
+        }
+        return 0;
+
     // ── AppController-only messages ───────────────────────────────────────────
     case WM_BONJOUR_MISSING:
         if (g_pApp) g_pApp->HandleBonjourMissing();
