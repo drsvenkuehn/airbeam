@@ -1,6 +1,6 @@
 # airbeam Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-30
+Auto-generated from all feature plans. Last updated: 2026-04-04
 
 ## Active Technologies
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (main)
@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-30
 - `%APPDATA%\AirBeam\config.json` — read/written via existing `Config` class (009-connection-controller)
 - C++17, MSVC 2022 (v143), `/permissive-` + Win32 WASAPI (`mmdeviceapi.h`, `audioclient.h`, `avrt.lib`, `ole32.lib`), libspeexdsp (vendored BSD-3-Clause, integer resampler), Google Test 1.14.0 (007-wasapi-loopback-capture)
 - N/A — audio data flows in-memory through a lock-free SPSC ring buffer (007-wasapi-loopback-capture)
+- C++17, MSVC 2022 (v143) — inherited from v1.0 (010-airplay2-support)
+- Windows Credential Manager (DPAPI-backed) for HAP pairing credentials; existing `config.json` for multi-room group preferences (010-airplay2-support)
 
 - C++17, MSVC 2022 (v143), `/permissive-` (001-airplay-audio-sender)
 
@@ -32,9 +34,9 @@ tests/
 C++17, MSVC 2022 (v143), `/permissive-`: Follow standard conventions
 
 ## Recent Changes
+- 010-airplay2-support: Added C++17, MSVC 2022 (v143) — inherited from v1.0
 - 007-wasapi-loopback-capture: Added C++17, MSVC 2022 (v143), `/permissive-` + Win32 WASAPI (`mmdeviceapi.h`, `audioclient.h`, `avrt.lib`, `ole32.lib`), libspeexdsp (vendored BSD-3-Clause, integer resampler), Google Test 1.14.0
 - 009-connection-controller: Added C++17 — MSVC 2022 (v143), `/permissive-` + Win32 API (SetTimer/KillTimer, PostMessage, OutputDebugString),
-- 008-mdns-tray-discovery: Added C++17, MSVC 2022 (v143), `/permissive-` + Win32 API, Bonjour SDK (`dnssd.dll`, dynamic), WinSparkle (already
 
 
 <!-- MANUAL ADDITIONS START -->
