@@ -6,10 +6,14 @@
 #endif
 #include <windows.h>
 #include <windowsx.h>
+#include <uxtheme.h>
+#include <vssym32.h>
+#include <dwmapi.h>
 #include <cwchar>
 
 #include "ui/MenuVolumeSlider.h"
 #include "core/Commands.h"
+#include "core/Logger.h"
 
 // ── Static instance (one menu open at a time) ────────────────────────────────
 MenuVolumeSlider* MenuVolumeSlider::s_instance_ = nullptr;
@@ -41,10 +45,16 @@ void MenuVolumeSlider::BeforeTrackPopup() {
     menuHwnd_   = nullptr;
     dragging_   = false;
     sliderScreen_ = {};
+    // CALLWNDPROCRET hook: fires after WM_CREATE — correct timing for DWM rounded corners.
+    cbtHook_ = SetWindowsHookExW(WH_CALLWNDPROCRET, CbtHookProc, nullptr, GetCurrentThreadId());
     hook_ = SetWindowsHookExW(WH_MSGFILTER, HookProc, nullptr, GetCurrentThreadId());
 }
 
 void MenuVolumeSlider::AfterTrackPopup() {
+    if (cbtHook_) {
+        UnhookWindowsHookEx(cbtHook_);
+        cbtHook_ = nullptr;
+    }
     if (hook_) {
         UnhookWindowsHookEx(hook_);
         hook_ = nullptr;
@@ -75,13 +85,19 @@ bool MenuVolumeSlider::HandleDrawItem(DRAWITEMSTRUCT* dis) {
 
     if (dis->itemID == IDM_VOLUME_LABEL) {
         // ── Label row ─────────────────────────────────────────────────────────
-        FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_MENU));
+        HTHEME hTheme = OpenThemeData(dis->hwndItem, L"MENU");
+        if (hTheme) {
+            DrawThemeBackground(hTheme, dis->hDC, MENU_POPUPBACKGROUND, 0, &dis->rcItem, nullptr);
+            CloseThemeData(hTheme);
+        } else {
+            FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_MENU));
+        }
         wchar_t buf[32];
         swprintf_s(buf, L"Volume  %d%%", static_cast<int>(volume_ * 100.0f + 0.5f));
         SetBkMode(dis->hDC, TRANSPARENT);
         SetTextColor(dis->hDC, GetSysColor(COLOR_MENUTEXT));
         RECT r = dis->rcItem;
-        r.left += GetSystemMetrics(SM_CXMENUCHECK);
+        r.left += GetSystemMetrics(SM_CXMENUCHECK) + 4;
         DrawTextW(dis->hDC, buf, -1, &r, DT_SINGLELINE | DT_LEFT | DT_VCENTER | DT_NOCLIP);
     } else {
         // ── Slider row ────────────────────────────────────────────────────────
@@ -100,7 +116,13 @@ bool MenuVolumeSlider::HandleDrawItem(DRAWITEMSTRUCT* dis) {
         }
 
         // Background
-        FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_MENU));
+        HTHEME hTheme = OpenThemeData(dis->hwndItem, L"MENU");
+        if (hTheme) {
+            DrawThemeBackground(hTheme, dis->hDC, MENU_POPUPBACKGROUND, 0, &dis->rcItem, nullptr);
+            CloseThemeData(hTheme);
+        } else {
+            FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_MENU));
+        }
 
         const int checkW     = GetSystemMetrics(SM_CXMENUCHECK);
         const int margin     = 4;
@@ -129,6 +151,29 @@ bool MenuVolumeSlider::HandleDrawItem(DRAWITEMSTRUCT* dis) {
         SelectObject(dis->hDC, oldBrush);
     }
     return true;
+}
+
+// ── CALLWNDPROCRET hook: apply Win11 rounded corners at first #32768 message ──
+// Menu windows bypass the normal WM_CREATE hook chain. WM_GETOBJECT (0x003D)
+// arrives before first paint — the right moment to request DWM rounded corners.
+// SPI_SETMENUANIMATION=FALSE (set in TrayMenu::Show) prevents WS_EX_LAYERED,
+// which would otherwise block DwmSetWindowAttribute from taking effect.
+
+LRESULT CALLBACK MenuVolumeSlider::CbtHookProc(int code, WPARAM wParam, LPARAM lParam) {
+    if (code == HC_ACTION && s_instance_) {
+        const auto* ret = reinterpret_cast<CWPRETSTRUCT*>(lParam);
+        if (ret->message == 0x003D /*WM_GETOBJECT*/ && !s_instance_->roundCornersApplied_) {
+            wchar_t cls[16] = {};
+            GetClassNameW(ret->hwnd, cls, _countof(cls));
+            if (wcscmp(cls, L"#32768") == 0) {
+                constexpr DWORD DWMWA_CORNER = 33;   // DWMWA_WINDOW_CORNER_PREFERENCE
+                constexpr DWORD ROUND        = 2;    // DWMWCP_ROUND
+                DwmSetWindowAttribute(ret->hwnd, DWMWA_CORNER, &ROUND, sizeof(ROUND));
+                s_instance_->roundCornersApplied_ = true;
+            }
+        }
+    }
+    return CallNextHookEx(nullptr, code, wParam, lParam);
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────

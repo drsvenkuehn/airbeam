@@ -58,10 +58,12 @@ private:
 // ── T100: SpscRingBufferPtr type-erasure ──────────────────────────────────────
 // Forward declaration ensures AudioFrame.h only needs to be included once.
 
-/// Type-erased pointer to either a 128-slot or 32-slot (low-latency) ring buffer.
+/// Type-erased pointer to a 512-slot (Feature 007: WASAPI loopback capture),
+/// 128-slot, or 32-slot (low-latency) ring buffer.
 /// ConnectionController stores this so Threads 3 and 4 can be passed the same
 /// pointer regardless of latency mode.
 using SpscRingBufferPtr = std::variant<
+    SpscRingBuffer<AudioFrame, 512>*,
     SpscRingBuffer<AudioFrame, 128>*,
     SpscRingBuffer<AudioFrame, 32>*
 >;

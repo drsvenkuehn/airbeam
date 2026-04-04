@@ -32,15 +32,19 @@ void BalloonNotify::Show(UINT titleId, UINT bodyId, DWORD niifFlags, const wchar
     std::wstring title = StringLoader::Load(titleId);
     std::wstring body  = StringLoader::Load(bodyId);
 
-    // Substitute the optional format argument (e.g. device name) into body
-    // strings that contain a %s placeholder such as "Connected to %s".
-    if (arg && !body.empty()) {
-        wchar_t formatted[512] = {};
-        if (_snwprintf_s(formatted, _countof(formatted), _TRUNCATE,
-                         body.c_str(), arg) >= 0) {
-            body = formatted;
+    // Substitute the optional format argument (e.g. device name) into any
+    // title or body format string that contains a %s placeholder.
+    auto applyArg = [&](std::wstring& str) {
+        if (arg && !str.empty() && str.find(L'%') != std::wstring::npos) {
+            wchar_t formatted[512] = {};
+            if (_snwprintf_s(formatted, _countof(formatted), _TRUNCATE,
+                             str.c_str(), arg) >= 0) {
+                str = formatted;
+            }
         }
-    }
+    };
+    applyArg(title);
+    applyArg(body);
 
     NOTIFYICONDATAW nid = {};
     nid.cbSize      = sizeof(nid);

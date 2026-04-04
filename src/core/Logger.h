@@ -22,6 +22,10 @@ public:
     void Log(LogLevel level, const char* msg);
     void Logf(LogLevel level, const char* fmt, ...);
 
+    // Wide-string variant — converts to UTF-8 then logs.
+    // Use for callers (e.g. CC_TRACE) that build messages with wchar_t format strings.
+    void LogW(LogLevel level, const wchar_t* wfmt, ...);
+
     // Opens %APPDATA%\AirBeam\logs\ in Windows Explorer.
     void OpenLogFolder();
 

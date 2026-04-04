@@ -12,25 +12,29 @@
 # port mappings and configure shairport-sync with a fixed RTP port range.
 
 services:
-  shairport-sync:
-    image: mikebrady/shairport-sync:latest
-    network_mode: host
-    command: >
-      -v
-      --name=AirBeam-Test
-      --port=5000
-      -o dummy
-    restart: unless-stopped
-  # Windows Docker Desktop / WSL2: use explicit port mappings below if
-  # network_mode: host does not expose port 5000 to Windows localhost.
-  # Uncomment and comment out the block above to switch:
-  #shairport-sync-mapped:
+  # Linux / WSL2 (preferred — required for RTP UDP port negotiation):
+  # network_mode: host exposes all ports directly. Uncomment below and
+  # comment out the shairport-sync block to switch back.
+  #shairport-sync-host:
   #  image: mikebrady/shairport-sync:latest
-  #  ports:
-  #    - "5000:5000"
+  #  network_mode: host
   #  command: >
   #    -v
   #    --name=AirBeam-Test
   #    --port=5000
   #    -o dummy
   #  restart: unless-stopped
+
+  # Windows Docker Desktop: explicit port mappings (RTSP/TCP only; RTP/UDP
+  # ports are negotiated dynamically so full E2E audio verification
+  # requires WSL2 backend with host networking).
+  shairport-sync:
+    image: mikebrady/shairport-sync:latest
+    ports:
+      - "5000:5000"
+    command: >
+      -v
+      --name=AirBeam-Test
+      --port=5000
+      -o dummy
+    restart: unless-stopped

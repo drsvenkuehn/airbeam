@@ -63,13 +63,6 @@ bool AppController::Start(HINSTANCE hInst, HWND hwnd, bool isStartupLaunch) {
     sparkle_.Init(config_);
     sparkle_.SetMainHwnd(hwnd_);
 
-    menuSlider_.Init([this](float v) {
-        if (cc_) cc_->SetVolume(v);
-        config_.volume = v;
-        config_.Save();
-    });
-    menuSlider_.SetVolume(config_.volume);
-
     if (cc_) cc_->StartAutoConnectWindow();
 
     return true;
@@ -175,17 +168,7 @@ void AppController::HandleTimer(WPARAM wParam) {
         trayIcon_.OnAnimationTick();
 }
 
-bool AppController::HandleMeasureItem(MEASUREITEMSTRUCT* mis) {
-    return menuSlider_.HandleMeasureItem(mis);
-}
-
-bool AppController::HandleDrawItem(DRAWITEMSTRUCT* dis) {
-    return menuSlider_.HandleDrawItem(dis);
-}
-
 void AppController::ShowTrayMenu() {
-    SetForegroundWindow(hwnd_);
-
     int connectedIdx  = -1;
     int connectingIdx = -1;
     if (cc_) {
@@ -202,13 +185,17 @@ void AppController::ShowTrayMenu() {
         }
     }
 
-    UINT cmd = trayMenu_.Show(hwnd_, config_, sparkle_.IsAvailable(),
-                              bonjourMissing_,
-                              sortedReceivers_,
-                              connectedIdx,
-                              connectingIdx,
-                              &menuSlider_,
-                              config_.volume);
+    UINT cmd = trayMenu_.Show(
+        hwnd_, config_, sparkle_.IsAvailable(),
+        bonjourMissing_,
+        sortedReceivers_,
+        connectedIdx,
+        connectingIdx,
+        [this](float v) {
+            if (cc_) cc_->SetVolume(v);
+            config_.volume = v;
+            config_.Save();
+        });
 
     PostMessageW(hwnd_, WM_NULL, 0, 0);
     if (cmd != 0) HandleCommand(cmd);

@@ -10,9 +10,20 @@
 #include <audioclient.h>
 #include <avrt.h>
 #include <atomic>
+#include <memory>
 #include <thread>
 #include "audio/SpscRingBuffer.h"
-#include "audio/Resampler.h"
+#include "audio/AudioFrame.h"
+
+// Forward declare Resampler to avoid including it in the header
+class Resampler;
+
+/// Capacity of the SPSC ring buffer passed to Start().
+/// Caller MUST create a SpscRingBuffer<AudioFrame, kCaptureQueueFrames>.
+inline constexpr int kCaptureQueueFrames = 512;
+
+/// Maximum WASAPI frames per period (for pre-allocated silence buffer)
+inline constexpr int kMaxFramesPerBuffer = 2048;
 
 class WasapiCapture : public IMMNotificationClient {
 public:
@@ -22,72 +33,73 @@ public:
     WasapiCapture(const WasapiCapture&) = delete;
     WasapiCapture& operator=(const WasapiCapture&) = delete;
 
-    /// Initializes WASAPI on the calling thread (Thread 1), then starts Thread 3.
-    /// ring     — shared ring buffer (owned by ConnectionController, outlives this object)
-    /// hwndMain — receives WM_DEVICE_CHANGED on IMMNotificationClient callback
+    /// Start capture from the default Windows render endpoint.
+    /// ring must be a SpscRingBuffer<AudioFrame, 512>* arm of SpscRingBufferPtr.
+    /// hwndMain receives WM_CAPTURE_ERROR on failure and WM_DEFAULT_DEVICE_CHANGED on recovery.
     bool Start(SpscRingBufferPtr ring, HWND hwndMain);
 
-    /// Signals Thread 3 to stop and joins (max 200 ms).
+    /// Stop capture. Thread-safe. Blocks until capture thread exits. Idempotent.
     void Stop();
 
-    bool IsRunning() const { return running_.load(std::memory_order_acquire); }
-
-    uint64_t DroppedFrameCount() const { return droppedFrameCount_.load(std::memory_order_relaxed); }
-    uint64_t UdpDropCount()      const { return udpDropCount_.load(std::memory_order_relaxed); }
+    bool     IsRunning()        const { return running_.load(std::memory_order_acquire); }
+    uint64_t DroppedFrameCount()const { return droppedFrameCount_.load(std::memory_order_relaxed); }
+    uint64_t UdpDropCount()     const { return udpDropCount_.load(std::memory_order_relaxed); }
 
     // IUnknown
     STDMETHODIMP         QueryInterface(REFIID riid, void** ppv) override;
     STDMETHODIMP_(ULONG) AddRef()  override { return 1; }
     STDMETHODIMP_(ULONG) Release() override { return 1; }
 
-    // IMMNotificationClient — only OnDefaultDeviceChanged is meaningful
+    // IMMNotificationClient
     STDMETHODIMP OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId) override;
-    STDMETHODIMP OnDeviceAdded(LPCWSTR) override          { return S_OK; }
-    STDMETHODIMP OnDeviceRemoved(LPCWSTR) override        { return S_OK; }
-    STDMETHODIMP OnDeviceStateChanged(LPCWSTR, DWORD) override { return S_OK; }
+    STDMETHODIMP OnDeviceAdded(LPCWSTR)                     override { return S_OK; }
+    STDMETHODIMP OnDeviceRemoved(LPCWSTR)                   override { return S_OK; }
+    STDMETHODIMP OnDeviceStateChanged(LPCWSTR, DWORD)       override { return S_OK; }
     STDMETHODIMP OnPropertyValueChanged(LPCWSTR, const PROPERTYKEY) override { return S_OK; }
 
 private:
     void ThreadProc();
-
-    // Initializes IAudioClient for the default render device (loopback).
-    // Called from Thread 3 only.
     bool InitAudioClient();
     void ReleaseAudioClient();
+    void Reinitialise();
 
-    // Accumulates WASAPI frames until we have exactly 352 stereo samples,
-    // then pushes to the ring buffer. Stack-only; no heap.
+    // Accumulates variable WASAPI frames into fixed 352-sample AudioFrame objects
     struct FrameAccumulator {
-        int16_t  buf[704] = {};  // 352 stereo samples * 2
-        int      filled  = 0;   // samples filled so far (L+R count)
-
-        // Returns true when a full 352-sample frame was emitted (written to 'out').
-        bool Push(const float* src, int frameCount, int channels, AudioFrame& out) noexcept;
+        int16_t buf[704] = {};
+        int     filled   = 0;
+        bool Push(const float*   src, int frameCount, int channels, AudioFrame& out) noexcept;
         bool Push(const int16_t* src, int frameCount, int channels, AudioFrame& out) noexcept;
     };
 
-    SpscRingBufferPtr       ring_{static_cast<SpscRingBuffer<AudioFrame,128>*>(nullptr)};
-    HWND                    hwndMain_      = nullptr;
+    SpscRingBufferPtr          ring_{static_cast<SpscRingBuffer<AudioFrame,512>*>(nullptr)};
+    HWND                       hwndMain_      = nullptr;
 
-    // WASAPI objects — initialized on Thread 3
-    IMMDeviceEnumerator*    pEnumerator_   = nullptr;
-    IMMDevice*              pDevice_       = nullptr;
-    IAudioClient*           pAudioClient_  = nullptr;
-    IAudioCaptureClient*    pCaptureClient_= nullptr;
-    HANDLE                  captureEvent_  = nullptr;
-    WAVEFORMATEX*           pMixFormat_    = nullptr;
+    // WASAPI objects — initialized in ThreadProc via InitAudioClient
+    IMMDeviceEnumerator*       pEnumerator_   = nullptr;
+    IMMDevice*                 pDevice_       = nullptr;
+    IAudioClient*              pAudioClient_  = nullptr;
+    IAudioCaptureClient*       pCaptureClient_= nullptr;
+    HANDLE                     captureEvent_  = nullptr;  // auto-reset, set by WASAPI
+    HANDLE                     stopEvent_     = nullptr;  // manual-reset, set by Stop()
+    WAVEFORMATEX*              pMixFormat_    = nullptr;
 
-    // Resampler — constructed on Thread 1 before Start()
+    // Resampler — constructed in InitAudioClient when format != 44100Hz
     std::unique_ptr<Resampler> resampler_;
 
     // Thread control
-    std::thread             thread_;
-    std::atomic<bool>       stopFlag_{false};
-    std::atomic<bool>       running_{false};
-    std::atomic<bool>       deviceChanged_{false};
+    std::thread                thread_;
+    std::atomic<bool>          stopFlag_{false};
+    std::atomic<bool>          running_{false};
 
-    // Stats (written by Thread 3, read by Thread 1 — relaxed OK for monitoring)
-    std::atomic<uint64_t>   droppedFrameCount_{0};
-    std::atomic<uint64_t>   udpDropCount_{0};
-    uint32_t                frameCounter_  = 0;
+    // Device change coalescing: set to GetTickCount64() on first notification in window
+    std::atomic<ULONGLONG>     deviceChangedAt_{0};
+
+    // Stats
+    std::atomic<uint64_t>      droppedFrameCount_{0};
+    std::atomic<uint64_t>      udpDropCount_{0};
+    uint32_t                   frameCounter_ = 0;
+
+    // Pre-allocated silence buffer (static BSS, zero cost)
+    // Used when AUDCLNT_BUFFERFLAGS_SILENT is set on hot path
+    static const int16_t kSilenceBuf_[kMaxFramesPerBuffer * 2];
 };

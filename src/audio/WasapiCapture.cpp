@@ -1,11 +1,11 @@
-// RT-safety audit (T092): hot path verified clean — no heap, no mutex, no I/O.
-// The steady-state loop (WaitForSingleObject → GetBuffer → ReleaseBuffer) uses
+// RT-safety audit (Feature 007): hot path verified clean — no heap, no mutex, no I/O.
+// The steady-state loop (WaitForMultipleObjects → GetBuffer → ReleaseBuffer) uses
 // only stack-allocated locals, atomic loads/stores, and the WASAPI capture event.
-// The device-change recovery branch (InitAudioClient) touches COM/heap but fires
+// The device-change recovery branch (Reinitialise) touches COM/heap but fires
 // only on exceptional device-change events, not in steady-state audio processing.
-// Audit date: 2025. Auditor: speckit.implement agent.
 
 #include "audio/WasapiCapture.h"
+#include "audio/Resampler.h"
 #include <mmreg.h>
 #include <algorithm>
 #include <cmath>
@@ -17,6 +17,9 @@ static const GUID kSubtypeFloat = {
     0x00000003, 0x0000, 0x0010,
     {0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71}
 };
+
+// Static silence buffer — BSS segment, zero-cost
+const int16_t WasapiCapture::kSilenceBuf_[kMaxFramesPerBuffer * 2] = {};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FrameAccumulator — float path
@@ -68,7 +71,14 @@ bool WasapiCapture::FrameAccumulator::Push(
 // Construction / destruction
 // ─────────────────────────────────────────────────────────────────────────────
 
-WasapiCapture::WasapiCapture() = default;
+WasapiCapture::WasapiCapture()
+{
+    HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                                  __uuidof(IMMDeviceEnumerator),
+                                  reinterpret_cast<void**>(&pEnumerator_));
+    if (SUCCEEDED(hr) && pEnumerator_)
+        pEnumerator_->RegisterEndpointNotificationCallback(this);
+}
 
 WasapiCapture::~WasapiCapture()
 {
@@ -78,10 +88,6 @@ WasapiCapture::~WasapiCapture()
         pEnumerator_->Release();
         pEnumerator_ = nullptr;
     }
-    if (captureEvent_) {
-        CloseHandle(captureEvent_);
-        captureEvent_ = nullptr;
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,47 +96,26 @@ WasapiCapture::~WasapiCapture()
 
 bool WasapiCapture::Start(SpscRingBufferPtr ring, HWND hwndMain)
 {
+    // Validate ring: accept 512-slot (normal) or 32-slot (low-latency) arms.
+    // The 128-slot arm is reserved for future use; reject nullptr (index 0 with null ptr).
+    bool validRing = std::holds_alternative<SpscRingBuffer<AudioFrame,512>*>(ring) ||
+                     std::holds_alternative<SpscRingBuffer<AudioFrame,32>*>(ring);
+    if (!validRing)
+        return false;
+
+    if (!pEnumerator_)
+        return false;
+
     ring_     = ring;
     hwndMain_ = hwndMain;
 
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-    // RPC_E_CHANGED_MODE means the thread already has a COM apartment — that's OK.
-    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+    // Create events
+    stopEvent_    = CreateEventW(nullptr, TRUE,  FALSE, nullptr); // manual-reset
+    captureEvent_ = CreateEventW(nullptr, FALSE, FALSE, nullptr); // auto-reset
+    if (!stopEvent_ || !captureEvent_) {
+        if (stopEvent_)    { CloseHandle(stopEvent_);    stopEvent_    = nullptr; }
+        if (captureEvent_) { CloseHandle(captureEvent_); captureEvent_ = nullptr; }
         return false;
-
-    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-                          __uuidof(IMMDeviceEnumerator),
-                          reinterpret_cast<void**>(&pEnumerator_));
-    if (FAILED(hr)) return false;
-
-    pEnumerator_->RegisterEndpointNotificationCallback(this);
-
-    // Create the event now so InitAudioClient (on Thread 3) can set it
-    captureEvent_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    if (!captureEvent_) return false;
-
-    // Query the mix format on Thread 1 so we can build the Resampler before
-    // the streaming loop starts.
-    {
-        IMMDevice*    pDev = nullptr;
-        IAudioClient* pAC  = nullptr;
-        WAVEFORMATEX* pFmt = nullptr;
-
-        if (SUCCEEDED(pEnumerator_->GetDefaultAudioEndpoint(eRender, eConsole, &pDev))) {
-            if (SUCCEEDED(pDev->Activate(__uuidof(IAudioClient), CLSCTX_ALL,
-                                          nullptr,
-                                          reinterpret_cast<void**>(&pAC)))) {
-                pAC->GetMixFormat(&pFmt);
-                pAC->Release();
-            }
-            pDev->Release();
-        }
-
-        if (pFmt) {
-            resampler_ = std::make_unique<Resampler>(pFmt->nSamplesPerSec,
-                                                     pFmt->nChannels);
-            CoTaskMemFree(pFmt);
-        }
     }
 
     stopFlag_.store(false, std::memory_order_relaxed);
@@ -144,15 +129,40 @@ bool WasapiCapture::Start(SpscRingBufferPtr ring, HWND hwndMain)
 
 void WasapiCapture::Stop()
 {
+    if (!thread_.joinable()) {
+        // Clean up events if Start was never called or already stopped
+        if (stopEvent_)    { CloseHandle(stopEvent_);    stopEvent_    = nullptr; }
+        if (captureEvent_) { CloseHandle(captureEvent_); captureEvent_ = nullptr; }
+        return;
+    }
+
     stopFlag_.store(true, std::memory_order_release);
-    // Unblock the WaitForSingleObject so Thread 3 exits promptly.
+    if (stopEvent_)    SetEvent(stopEvent_);
     if (captureEvent_) SetEvent(captureEvent_);
-    if (thread_.joinable()) thread_.join();
+    thread_.join();
+
+    if (stopEvent_)    { CloseHandle(stopEvent_);    stopEvent_    = nullptr; }
+    if (captureEvent_) { CloseHandle(captureEvent_); captureEvent_ = nullptr; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InitAudioClient — Thread 3 only
 // ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+// Detect whether the mix format carries IEEE-float samples.
+bool FormatIsFloat(const WAVEFORMATEX* pFmt) noexcept
+{
+    if (!pFmt) return false;
+    if (pFmt->wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
+        const auto* ext = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(pFmt);
+        static const GUID kFlt = {0x00000003, 0x0000, 0x0010,
+                                   {0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}};
+        return ext->SubFormat == kFlt;
+    }
+    return pFmt->wFormatTag == WAVE_FORMAT_IEEE_FLOAT;
+}
+} // namespace
 
 bool WasapiCapture::InitAudioClient()
 {
@@ -179,39 +189,47 @@ bool WasapiCapture::InitAudioClient()
                                     reinterpret_cast<void**>(&pCaptureClient_));
     if (FAILED(hr)) return false;
 
+    // Create resampler if needed
+    if (pMixFormat_->nSamplesPerSec != 44100) {
+        resampler_ = std::make_unique<Resampler>(pMixFormat_->nSamplesPerSec,
+                                                  pMixFormat_->nChannels);
+    } else {
+        resampler_.reset();
+    }
+
     return true;
 }
 
 void WasapiCapture::ReleaseAudioClient()
 {
-    if (pAudioClient_)   { pAudioClient_->Stop(); }
-    if (pCaptureClient_) { pCaptureClient_->Release(); pCaptureClient_ = nullptr; }
-    if (pAudioClient_)   { pAudioClient_->Release();   pAudioClient_   = nullptr; }
-    if (pDevice_)        { pDevice_->Release();        pDevice_        = nullptr; }
-    if (pMixFormat_)     { CoTaskMemFree(pMixFormat_); pMixFormat_     = nullptr; }
+    if (pAudioClient_)    { pAudioClient_->Stop(); }
+    if (pCaptureClient_)  { pCaptureClient_->Release();  pCaptureClient_  = nullptr; }
+    if (pAudioClient_)    { pAudioClient_->Release();    pAudioClient_    = nullptr; }
+    if (pDevice_)         { pDevice_->Release();         pDevice_         = nullptr; }
+    if (pMixFormat_)      { CoTaskMemFree(pMixFormat_);  pMixFormat_      = nullptr; }
+    resampler_.reset();
+    // NOTE: captureEvent_ and stopEvent_ are managed by Start/Stop, not here
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hot-loop helpers (inline lambdas keep the loop body readable)
+// Reinitialise — called from ThreadProc on device change
 // ─────────────────────────────────────────────────────────────────────────────
 
-namespace {
-
-// Detect whether the mix format carries IEEE-float samples.
-bool FormatIsFloat(const WAVEFORMATEX* pFmt) noexcept
+void WasapiCapture::Reinitialise()
 {
-    if (!pFmt) return false;
-    if (pFmt->wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
-        const auto* ext = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(pFmt);
-        return ext->SubFormat == kSubtypeFloat;
+    ReleaseAudioClient();
+    if (!InitAudioClient()) {
+        if (hwndMain_)
+            PostMessageW(hwndMain_, WM_CAPTURE_ERROR, static_cast<WPARAM>(E_FAIL), 0);
+        return;
     }
-    return pFmt->wFormatTag == WAVE_FORMAT_IEEE_FLOAT;
+    pAudioClient_->Start();
+    if (hwndMain_)
+        PostMessageW(hwndMain_, WM_AUDIO_DEVICE_LOST, 0, 0);
 }
 
-} // namespace
-
 // ─────────────────────────────────────────────────────────────────────────────
-// ThreadProc — Thread 3  (RT: ZERO heap alloc, ZERO mutex, ZERO logging)
+// ThreadProc — Thread 3  (RT: ZERO heap alloc, ZERO mutex, ZERO logging on hot path)
 // ─────────────────────────────────────────────────────────────────────────────
 
 void WasapiCapture::ThreadProc()
@@ -223,6 +241,8 @@ void WasapiCapture::ThreadProc()
     HANDLE hMmcss = AvSetMmThreadCharacteristics(L"Audio", &taskIndex);
 
     if (!InitAudioClient()) {
+        if (hwndMain_)
+            PostMessageW(hwndMain_, WM_CAPTURE_ERROR, static_cast<WPARAM>(E_FAIL), 0);
         if (hMmcss) AvRevertMmThreadCharacteristics(hMmcss);
         CoUninitialize();
         return;
@@ -237,117 +257,104 @@ void WasapiCapture::ThreadProc()
 
     FrameAccumulator accum;
 
-    // Static const silence buffer lives in BSS — zero cost, no heap.
-    static const float kSilence[2048 * 2] = {};
-
-    // Resampled int16 output — stack-allocated, large enough for any WASAPI period.
-    int16_t resampledBuf[2048 * 2];
+    // Wait handles: [0]=stopEvent_, [1]=captureEvent_
+    HANDLE waitHandles[2] = { stopEvent_, captureEvent_ };
 
     while (!stopFlag_.load(std::memory_order_acquire)) {
 
-        // ── Device-change recovery ────────────────────────────────────────────
-        if (deviceChanged_.load(std::memory_order_acquire)) {
-            deviceChanged_.store(false, std::memory_order_release);
-            ReleaseAudioClient();
-            if (!InitAudioClient()) break;
-            fmtIsFloat = FormatIsFloat(pMixFormat_);
-            fmtCh      = pMixFormat_ ? pMixFormat_->nChannels : 2u;
-            pAudioClient_->Start();
+        DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 200);
+
+        if (waitResult == WAIT_OBJECT_0) {
+            // stopEvent_ signaled — exit
+            break;
         }
 
-        // ── Wait for data ─────────────────────────────────────────────────────
-        DWORD waitResult = WaitForSingleObject(captureEvent_, 200);
-        if (waitResult == WAIT_TIMEOUT) continue;
-        if (waitResult != WAIT_OBJECT_0) break;
+        if (waitResult == WAIT_TIMEOUT) {
+            // Check for pending device change (coalesced 20ms debounce)
+            ULONGLONG t = deviceChangedAt_.load(std::memory_order_acquire);
+            if (t != 0 && (GetTickCount64() - t) >= 20ULL) {
+                deviceChangedAt_.store(0, std::memory_order_release);
+                Reinitialise();
+                // Update cached format properties after reinit
+                if (pMixFormat_) {
+                    fmtIsFloat = FormatIsFloat(pMixFormat_);
+                    fmtCh = pMixFormat_->nChannels;
+                }
+            }
+            continue;
+        }
+
+        if (waitResult != WAIT_OBJECT_0 + 1) break; // unexpected error
 
         // ── Drain all available packets in this period ────────────────────────
+        if (!pCaptureClient_) continue;
+
         HRESULT hr;
         BYTE*   pData     = nullptr;
         UINT32  numFrames = 0;
         DWORD   flags     = 0;
+
+        // Helper: push one completed frame into the ring, counting drops.
+        auto emit = [&](AudioFrame& frame) noexcept {
+            frame.frameCount = frameCounter_++;
+            if (!RingTryPush(ring_, frame))
+                ++droppedFrameCount_;
+        };
+
+        // Helper: feed int16 stereo data to the accumulator in exact-fit chunks.
+        auto feedInt16 = [&](const int16_t* src, int totalFrames, int nSrcCh) noexcept {
+            int done = 0;
+            while (done < totalFrames) {
+                int space = (704 - accum.filled) / 2;
+                int chunk = std::min(totalFrames - done, space);
+                AudioFrame frame;
+                if (accum.Push(src + done * nSrcCh, chunk, nSrcCh, frame))
+                    emit(frame);
+                done += chunk;
+            }
+        };
+
+        // Helper: feed float data to the accumulator in exact-fit chunks.
+        auto feedFloat = [&](const float* src, int totalFrames, int nSrcCh) noexcept {
+            int done = 0;
+            while (done < totalFrames) {
+                int space = (704 - accum.filled) / 2;
+                int chunk = std::min(totalFrames - done, space);
+                AudioFrame frame;
+                if (accum.Push(src + done * nSrcCh, chunk, nSrcCh, frame))
+                    emit(frame);
+                done += chunk;
+            }
+        };
 
         while ((hr = pCaptureClient_->GetBuffer(
                         &pData, &numFrames, &flags, nullptr, nullptr)) == S_OK)
         {
             if (numFrames == 0) {
                 pCaptureClient_->ReleaseBuffer(0);
-                // Maintain clock sync: push 352 zero samples through the
-                // accumulator so the downstream pipeline doesn't starve.
-                {
-                    int done = 0;
-                    while (done < 352) {
-                        const int space = (704 - accum.filled) / 2;
-                        const int chunk = std::min(352 - done, space);
-                        AudioFrame frame;
-                        if (accum.Push(kSilence + done * 2, chunk, 2, frame)) {
-                            frame.frameCount = frameCounter_++;
-                            if (!RingTryPush(ring_, frame))
-                                ++droppedFrameCount_;
-                        }
-                        done += chunk;
-                    }
-                }
                 break;
             }
 
             const bool isSilent = (flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0;
 
-            // Helper: push one completed frame into the ring, counting drops.
-            auto emit = [&](AudioFrame& frame) noexcept {
-                frame.frameCount = frameCounter_++;
-                if (!RingTryPush(ring_, frame))
-                    ++droppedFrameCount_;
-            };
-
-            // Helper: feed int16 stereo data to the accumulator in exact-fit chunks.
-            // 'nSrcCh' is the source channel count (1 or 2 for post-resample path).
-            auto feedInt16 = [&](const int16_t* src, int totalFrames, int nSrcCh) noexcept {
-                int done = 0;
-                while (done < totalFrames) {
-                    int space = (704 - accum.filled) / 2;
-                    int chunk = std::min(totalFrames - done, space);
-                    AudioFrame frame;
-                    if (accum.Push(src + done * nSrcCh, chunk, nSrcCh, frame))
-                        emit(frame);
-                    done += chunk;
-                }
-            };
-
-            // Helper: feed float data to the accumulator in exact-fit chunks.
-            auto feedFloat = [&](const float* src, int totalFrames, int nSrcCh) noexcept {
-                int done = 0;
-                while (done < totalFrames) {
-                    int space = (704 - accum.filled) / 2;
-                    int chunk = std::min(totalFrames - done, space);
-                    AudioFrame frame;
-                    if (accum.Push(src + done * nSrcCh, chunk, nSrcCh, frame))
-                        emit(frame);
-                    done += chunk;
-                }
-            };
-
             if (isSilent || pData == nullptr) {
-                // Treat silence as stereo-float zeros — values don't matter, only count.
-                feedFloat(kSilence, static_cast<int>(std::min(numFrames, 2048u)), 2);
-                // If numFrames > 2048, feed the remainder as additional silence chunks.
-                if (numFrames > 2048u) {
-                    int left = static_cast<int>(numFrames) - 2048;
-                    while (left > 0) {
-                        int chunk = std::min(left, 2048);
-                        feedFloat(kSilence, chunk, 2);
-                        left -= chunk;
-                    }
+                // Use pre-allocated int16 silence buffer — no heap, no stack allocation
+                int left = static_cast<int>(numFrames);
+                while (left > 0) {
+                    int chunk = std::min(left, kMaxFramesPerBuffer);
+                    feedInt16(kSilenceBuf_, chunk, 2);
+                    left -= chunk;
                 }
             } else if (fmtIsFloat) {
                 const float* src = reinterpret_cast<const float*>(pData);
 
                 if (resampler_ && !resampler_->IsPassthrough()) {
                     // Rate/channel conversion: float[N*fmtCh] → int16[M*2]
-                    int outFrames = resampler_->Process(
-                                        src, resampledBuf, static_cast<int>(numFrames));
-                    feedInt16(resampledBuf, outFrames, 2);
+                    int outFrames = 0;
+                    const int16_t* resampled = resampler_->Process(src, static_cast<int>(numFrames), outFrames);
+                    feedInt16(resampled, outFrames, 2);
                 } else {
-                    // Native 44100/stereo float — convert directly in the accumulator.
+                    // Native 44100 float — convert directly in the accumulator.
                     feedFloat(src, static_cast<int>(numFrames), static_cast<int>(fmtCh));
                 }
             } else {
@@ -374,9 +381,11 @@ HRESULT WasapiCapture::OnDefaultDeviceChanged(
     EDataFlow flow, ERole role, LPCWSTR /*pwstrDeviceId*/)
 {
     if (flow == eRender && role == eConsole) {
-        deviceChanged_.store(true, std::memory_order_release);
-        if (hwndMain_)
-            PostMessageW(hwndMain_, WM_DEFAULT_DEVICE_CHANGED, 0, 0);
+        // CAS: only record the first notification in a 20ms window
+        ULONGLONG expected = 0;
+        ULONGLONG now = GetTickCount64();
+        deviceChangedAt_.compare_exchange_strong(expected, now,
+            std::memory_order_release, std::memory_order_relaxed);
     }
     return S_OK;
 }

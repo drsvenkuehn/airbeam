@@ -48,10 +48,6 @@ IDI_TRAY_CONN_006   ICON  "icons/airbeam_connecting_006.ico"
 IDI_TRAY_CONN_007   ICON  "icons/airbeam_connecting_007.ico"
 IDI_TRAY_CONN_008   ICON  "icons/airbeam_connecting_008.ico"
 
-// ── Application manifest (Common Controls v6, PerMonitorV2 DPI, visual styles) ─
-// Type 24 = RT_MANIFEST; ID 1 = CREATEPROCESS_MANIFEST_RESOURCE_ID
-1 24 "@CMAKE_SOURCE_DIR@/resources/AirBeam.manifest"
-
 // ── String table — English (canonical; other locales in locales/strings_*.rc) ─
 // Included via strings_en.rc at build time
 #include "locales/strings_en.rc"

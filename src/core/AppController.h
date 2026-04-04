@@ -11,7 +11,6 @@
 #include "ui/TrayIcon.h"
 #include "ui/TrayMenu.h"
 #include "ui/BalloonNotify.h"
-#include "ui/MenuVolumeSlider.h"
 #include "update/SparkleIntegration.h"
 #include "discovery/AirPlayReceiver.h"
 #include "discovery/ReceiverList.h"
@@ -65,10 +64,6 @@ public:
     // WM_TIMER dispatch — forwards CC timer IDs to cc_, handles others internally.
     void HandleTimer(WPARAM wParam);
 
-    // Forward WM_MEASUREITEM / WM_DRAWITEM for owner-drawn menu items.
-    bool HandleMeasureItem(MEASUREITEMSTRUCT* mis);
-    bool HandleDrawItem(DRAWITEMSTRUCT* dis);
-
     HWND GetWindow() const { return hwnd_; }
 
     // Access ConnectionController for WndProc message forwarding
@@ -86,7 +81,6 @@ private:
     TrayIcon           trayIcon_;
     TrayMenu           trayMenu_;
     BalloonNotify      balloonNotify_;
-    MenuVolumeSlider   menuSlider_;
     SparkleIntegration sparkle_;
 
     std::unique_ptr<ReceiverList>         receiverList_;

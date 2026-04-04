@@ -8,6 +8,7 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <atomic>
+#include <list>
 #include <thread>
 #include <vector>
 #include "discovery/BonjourLoader.h"
@@ -16,10 +17,13 @@
 /// Thread 2 — runs the Bonjour/mDNS event loop on a dedicated thread.
 /// Browses for _raop._tcp services, resolves each to an IP+port, parses the
 /// TXT record, then upserts the result into ReceiverList.
+/// Posts WM_DEVICE_DISCOVERED (on add) and WM_SPEAKER_LOST (on remove) to hwndMain.
 class MdnsDiscovery
 {
 public:
-    MdnsDiscovery(BonjourLoader& loader, ReceiverList& list);
+    /// @param hwndMain  Receives WM_DEVICE_DISCOVERED and WM_SPEAKER_LOST.
+    ///                  May be nullptr (disables those posts).
+    MdnsDiscovery(BonjourLoader& loader, ReceiverList& list, HWND hwndMain = nullptr);
     ~MdnsDiscovery();
 
     MdnsDiscovery(const MdnsDiscovery&)            = delete;
@@ -58,21 +62,24 @@ private:
 
     BonjourLoader&    loader_;
     ReceiverList&     list_;
+    HWND              hwndMain_ = nullptr;
     std::atomic<bool> stopFlag_{false};
     std::atomic<bool> running_{false};
     std::thread       thread_;
 
-    // Active service refs — only touched from Thread 2
-    DnsServiceRef_t   browseRef_   = nullptr;
-    DnsServiceRef_t   resolveRef_  = nullptr;
-    DnsServiceRef_t   addrInfoRef_ = nullptr;
+    // Active browse ref — lives for the duration of Thread 2
+    DnsServiceRef_t   browseRef_ = nullptr;
 
-    /// Accumulates receiver fields across the Browse→Resolve→AddrInfo pipeline.
-    /// Single-slot: adequate for LAN mDNS where responses arrive sequentially.
+    /// Per-device resolve slot.  One entry exists for each device currently in
+    /// the Browse→Resolve→AddrInfo pipeline.  std::list gives stable addresses
+    /// so we can safely pass &slot as the Bonjour callback context.
     struct PendingResolve
     {
+        MdnsDiscovery*  owner          = nullptr;
         AirPlayReceiver receiver;
         uint32_t        interfaceIndex = 0;
+        DnsServiceRef_t resolveRef     = nullptr;
+        DnsServiceRef_t addrInfoRef    = nullptr;
     };
-    PendingResolve pendingResolve_;
+    std::list<PendingResolve> pendingResolves_;
 };

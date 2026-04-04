@@ -100,14 +100,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
         if (g_pApp) g_pApp->HandleTimer(wParam);
         return 0;
 
-    case WM_MEASUREITEM:
-        if (g_pApp) g_pApp->HandleMeasureItem(reinterpret_cast<MEASUREITEMSTRUCT*>(lParam));
-        return TRUE;
-
-    case WM_DRAWITEM:
-        if (g_pApp) g_pApp->HandleDrawItem(reinterpret_cast<DRAWITEMSTRUCT*>(lParam));
-        return TRUE;
-
     case WM_ENDSESSION:
         if ((lParam & ENDSESSION_CLOSEAPP) && g_pApp) {
             g_pApp->Shutdown();

@@ -1,10 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.4.0 → 1.4.1  (PATCH — Branch protection removed from §CI/CD: solo project, direct pushes to main permitted)
+Version change: 1.4.1 → 1.4.2  (PATCH — §Toolchain resampling bullet expanded to approve
+  libspeexdsp as a third resampler option alongside libsamplerate and r8brain-free-src)
 Modified principles: none
 Modified sections:
-  - CI/CD & Release Pipeline — removed "direct pushes blocked by branch protection" sentence; removed "required status-check context" rationale from job name bullet
+  - Platform & Toolchain Constraints — Resampling bullet: added libspeexdsp as approved option
+    with integer-only API rationale, license note (BSD-3-Clause), and vendored-path reference.
 Added sections: N/A
 Removed sections: N/A
 Templates reviewed:
@@ -177,8 +179,13 @@ burden. Externalizing strings also makes community-contributed translations stra
   PROHIBITED.
 - **Audio API**: WASAPI loopback capture in shared mode, event-driven. Exclusive-mode capture is
   PROHIBITED.
-- **Resampling**: libsamplerate or r8brain-free-src MUST be used when the system format differs
-  from 44100 Hz stereo S16LE. Custom resampling implementations are PROHIBITED.
+- **Resampling**: libsamplerate, r8brain-free-src, or libspeexdsp MUST be used when the system
+  format differs from 44100 Hz stereo S16LE. libspeexdsp is preferred when an integer-only
+  (int16_t) data path is required on the real-time audio thread (no float intermediate buffer);
+  it exposes `speex_resampler_process_interleaved_int`, satisfies §I (zero heap allocations,
+  integer-only hot path), is BSD-3-Clause licensed (MIT-compatible, satisfies §VII), and is
+  vendored under `third_party/speexdsp/` at quality level 7 (sufficient for 44100 ↔ 48000 Hz
+  with no audible artifacts). Custom resampling implementations are PROHIBITED.
 - **Auto-update**: WinSparkle (`WinSparkle.dll`, x64 prebuilt, dynamically linked). MUST be
   shipped alongside `AirBeam.exe`. No additional runtime beyond the prebuilt DLL is required.
 - **mDNS / DNS-SD**: Bonjour SDK (`dnssd.dll`, dynamic link) or embedded mDNSResponder. Custom
@@ -317,4 +324,4 @@ principles in this document before merge.
 section validating compliance with all eight principles. Any non-compliance MUST be explicitly
 justified and documented in the plan's Complexity Tracking table.
 
-**Version**: 1.4.1 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-22
+**Version**: 1.4.2 | **Ratified**: 2026-03-21 | **Last Amended**: 2026-03-31

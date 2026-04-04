@@ -52,7 +52,7 @@ set(TEST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/discovery/ReceiverList.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TrayIcon.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TrayMenu.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/MenuVolumeSlider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/CustomPopup.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BalloonNotify.cpp
     ${CMAKE_SOURCE_DIR}/src/localization/StringLoader.cpp
 )
@@ -95,6 +95,7 @@ target_link_libraries(AirBeamTests PRIVATE
     shell32.lib   # Logger::OpenLogFolder → ShellExecuteW
     gdi32.lib
     comctl32.lib  # Common controls (TrayIcon, BalloonNotify)
+    dwmapi.lib    # CustomPopup: DwmSetWindowAttribute
 )
 
 # ── CTest registration────────────────────────────────────────────────────────

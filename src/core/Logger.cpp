@@ -2,6 +2,7 @@
 #include <shellapi.h>
 #include <cstdarg>
 #include <cstdio>
+#include <share.h>   // _SH_DENYWR
 
 // Pull in shell32 without requiring the caller's CMakeLists.txt to list it.
 #pragma comment(lib, "shell32.lib")
@@ -80,7 +81,9 @@ void Logger::OpenTodayFile()
     const std::wstring path =
         m_logDir + L"\\airbeam-" + m_currentDay + L".log";
     FILE* f = nullptr;
-    _wfopen_s(&f, path.c_str(), L"a"); // append — safe across date rollovers
+    // Open with _SH_DENYWR so other processes (PowerShell, tools) can read
+    // the log while AirBeam is running.
+    f = _wfsopen(path.c_str(), L"w", _SH_DENYWR);
     m_file = f;                         // nullptr silently if we cannot write
 }
 
@@ -166,6 +169,19 @@ void Logger::Logf(LogLevel level, const char* fmt, ...)
     va_start(args, fmt);
     vsnprintf_s(buf, sizeof(buf), _TRUNCATE, fmt, args);
     va_end(args);
+    Log(level, buf);
+}
+
+void Logger::LogW(LogLevel level, const wchar_t* wfmt, ...)
+{
+    wchar_t wbuf[1024];
+    va_list args;
+    va_start(args, wfmt);
+    _vsnwprintf_s(wbuf, _countof(wbuf), _TRUNCATE, wfmt, args);
+    va_end(args);
+
+    char buf[2048];
+    WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, static_cast<int>(sizeof(buf)), nullptr, nullptr);
     Log(level, buf);
 }
 

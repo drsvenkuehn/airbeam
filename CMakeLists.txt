@@ -131,7 +131,7 @@ set(AIRBEAM_SOURCES
 
     src/ui/TrayIcon.cpp
     src/ui/TrayMenu.cpp
-    src/ui/MenuVolumeSlider.cpp
+    src/ui/CustomPopup.cpp
     src/ui/VolumePopup.cpp
     src/ui/BalloonNotify.cpp
     src/ui/StartupRegistry.cpp
@@ -176,6 +176,8 @@ target_link_libraries(AirBeam PRIVATE
     winmm.lib
     shell32.lib
     comctl32.lib
+    uxtheme.lib
+    dwmapi.lib
     user32.lib
     gdi32.lib
     advapi32.lib
@@ -183,9 +185,28 @@ target_link_libraries(AirBeam PRIVATE
 )
 
 if(MSVC)
+    # Suppress linker manifest — we embed our own via mt.exe POST_BUILD
     set_target_properties(AirBeam PROPERTIES
         LINK_FLAGS "/MANIFEST:NO"
     )
+
+    # mt.exe lives beside rc.exe in the Windows Kit bin directory
+    get_filename_component(MT_TOOL "${CMAKE_RC_COMPILER}" DIRECTORY)
+    set(MT_TOOL "${MT_TOOL}/mt.exe")
+
+    if(EXISTS "${MT_TOOL}")
+        add_custom_command(TARGET AirBeam POST_BUILD
+            COMMAND ${CMAKE_COMMAND}
+                    "-DMT_TOOL=${MT_TOOL}"
+                    "-DMANIFEST_FILE=${CMAKE_SOURCE_DIR}/resources/AirBeam.manifest"
+                    "-DTARGET_EXE=$<TARGET_FILE:AirBeam>"
+                    -P "${CMAKE_SOURCE_DIR}/cmake/EmbedManifest.cmake"
+            COMMENT "Embedding application manifest (Common Controls v6 / PerMonitorV2)"
+            VERBATIM
+        )
+    else()
+        message(WARNING "mt.exe not found at ${MT_TOOL} — manifest will not be embedded")
+    endif()
 endif()
 
 # ── Bonjour Print Services MSI— fetch and verify at build time ──────────────

@@ -1,14 +1,13 @@
 #pragma once
 #include <windows.h>
 #include <vector>
+#include <functional>
 #include "core/Config.h"
 #include "discovery/AirPlayReceiver.h"
+#include "ui/CustomPopup.h"
 
-class MenuVolumeSlider; // forward declaration
-
-// Builds and displays the tray context menu.  The menu is created fresh on
-// every Show() call from the live Config state and receiver list.
-// TrackPopupMenu is called with TPM_RETURNCMD so the caller handles the result.
+// Builds and displays the tray context menu using the modern CustomPopup.
+// The menu is rebuilt on every Show() call from the live Config / receiver state.
 class TrayMenu {
 public:
     TrayMenu()  = default;
@@ -19,31 +18,34 @@ public:
 
     void Init(HINSTANCE hInst);
 
-    /// Returns the selected IDM_* command from the rebuilt menu.
-    /// bonjourMissing: show install-Bonjour placeholder
-    /// receivers: sorted, AirPlay1-filtered list
-    /// connectedReceiverIdx: index with checkmark (-1 = none)
-    /// connectingReceiverIdx: index showing "— Connecting…" suffix (-1 = none)
-    /// slider: optional in-menu volume slider; if non-null, installs hook around TrackPopupMenu
-    UINT Show(HWND hwnd, const Config& config, bool sparkleAvailable,
+    /// Show the custom popup and return the selected IDM_* command id (0 = dismissed).
+    /// onVolumeChange fires live as the slider is dragged.
+    UINT Show(HWND hwnd,
+              const Config& config,
+              bool sparkleAvailable,
               bool bonjourMissing,
               const std::vector<AirPlayReceiver>& receivers,
               int connectedReceiverIdx,
               int connectingReceiverIdx,
-              MenuVolumeSlider* slider = nullptr,
-              float volume = 1.0f);
+              std::function<void(float)> onVolumeChange = nullptr);
 
-    /// Builds and returns a HMENU with all items populated. Caller owns the menu.
-    /// Used by unit tests to inspect menu structure without TrackPopupMenu.
-    /// slider: if non-null, inserts owner-drawn label+slider rows instead of plain Volume item.
-    HMENU BuildMenu(const Config& config, bool sparkleAvailable,
+    /// Build and return a HMENU with all items (used by unit tests only).
+    HMENU BuildMenu(const Config& config,
+                    bool sparkleAvailable,
                     bool bonjourMissing,
                     const std::vector<AirPlayReceiver>& receivers,
                     int connectedReceiverIdx,
-                    int connectingReceiverIdx,
-                    MenuVolumeSlider* slider = nullptr,
-                    float volume = 1.0f) const;
+                    int connectingReceiverIdx) const;
 
 private:
+    /// Build the PopupItem list consumed by CustomPopup::Show().
+    std::vector<PopupItem> BuildItems(const Config& config,
+                                      bool sparkleAvailable,
+                                      bool bonjourMissing,
+                                      const std::vector<AirPlayReceiver>& receivers,
+                                      int connectedReceiverIdx,
+                                      int connectingReceiverIdx,
+                                      float volume) const;
+
     HINSTANCE hInst_ = nullptr;
 };

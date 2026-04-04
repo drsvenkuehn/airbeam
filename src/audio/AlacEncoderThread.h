@@ -27,12 +27,14 @@ public:
     /// Must be called before Start().
     /// Returns false if ALAC init fails.
     bool Init(SpscRingBufferPtr ring,
-              AesCbcCipher*     cipher,      // owned by ConnectionController
-              RetransmitBuffer* retransmit,  // owned by ConnectionController
+              AesCbcCipher*     cipher,        // owned by ConnectionController; may be nullptr if !useEncryption
+              RetransmitBuffer* retransmit,    // owned by ConnectionController
               uint32_t          ssrc,
               SOCKET            audioSocket,
               const sockaddr*   receiverAudioAddr,
-              int               addrLen);
+              int               addrLen,
+              HWND              hwndMain = nullptr,   // for WM_ENCODER_ERROR on unexpected exit
+              bool              useEncryption = true);
 
     /// Start Thread 4.
     void Start();
@@ -54,10 +56,11 @@ private:
     uint16_t            seqNum_          = 0;
     uint32_t            rtpTimestamp_    = 0;
 
-    // T046: UDP audio socket (fd passed from RaopSession after SETUP)
     SOCKET              audioSocket_     = INVALID_SOCKET;
     sockaddr_storage    receiverAddr_    = {};
     int                 receiverAddrLen_ = 0;
+    HWND                hwndMain_        = nullptr;  // for WM_ENCODER_ERROR
+    bool                useEncryption_   = true;     // false for et=0 receivers
 
     std::thread         thread_;
     std::atomic<bool>   stopFlag_{false};

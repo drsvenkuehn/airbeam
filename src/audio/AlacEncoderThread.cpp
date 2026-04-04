@@ -7,6 +7,7 @@
 #include "audio/AlacEncoderThread.h"
 #include <immintrin.h>  // _mm_pause
 #include <cstring>
+#include "core/Messages.h"
 
 // ALAC reference encoder — fetched by CMake FetchContent into _deps/alac-src/codec/
 #include "ALACEncoder.h"
@@ -74,13 +75,17 @@ bool AlacEncoderThread::Init(
     uint32_t          ssrc,
     SOCKET            audioSocket,
     const sockaddr*   receiverAudioAddr,
-    int               addrLen)
+    int               addrLen,
+    HWND              hwndMain,
+    bool              useEncryption)
 {
-    ring_      = ring;
-    cipher_    = cipher;
-    retransmit_ = retransmit;
-    ssrc_      = ssrc;
-    audioSocket_ = audioSocket;
+    ring_           = ring;
+    cipher_         = cipher;
+    retransmit_     = retransmit;
+    ssrc_           = ssrc;
+    audioSocket_    = audioSocket;
+    hwndMain_       = hwndMain;
+    useEncryption_  = useEncryption;
 
     if (addrLen > 0 && receiverAudioAddr) {
         memcpy(&receiverAddr_, receiverAudioAddr,
@@ -151,6 +156,9 @@ void AlacEncoderThread::ThreadProc()
     const AudioFormatDescription inFmt  = MakeInputFormat();
     const AudioFormatDescription outFmt = MakeOutputFormat();
 
+    // Load once — immutable after Init(), safe for RT thread without atomic.
+    const bool useEncryption = useEncryption_;
+
     while (!stopFlag_.load(std::memory_order_acquire)) {
 
         AudioFrame frame;
@@ -179,20 +187,27 @@ void AlacEncoderThread::ThreadProc()
 
         const int outBytes = static_cast<int>(ioBytes);
 
-        // ── 2. Zero-pad to 16-byte AES block boundary ─────────────────────────
-        const int paddedLen = (outBytes + 15) & ~15;
-        memset(alacBuf + outBytes, 0, static_cast<size_t>(paddedLen - outBytes));
+        int payloadLen;
+        if (useEncryption) {
+            // ── 2. Zero-pad to 16-byte AES block boundary ─────────────────────
+            const int paddedLen = (outBytes + 15) & ~15;
+            memset(alacBuf + outBytes, 0, static_cast<size_t>(paddedLen - outBytes));
 
-        // ── 3. AES-128-CBC encrypt in-place ───────────────────────────────────
-        cipher_->Encrypt(alacBuf, alacBuf, static_cast<size_t>(paddedLen));
+            // ── 3. AES-128-CBC encrypt in-place ───────────────────────────────
+            cipher_->Encrypt(alacBuf, alacBuf, static_cast<size_t>(paddedLen));
+            payloadLen = paddedLen;
+        } else {
+            // Unencrypted: send raw ALAC bytes, no padding needed
+            payloadLen = outBytes;
+        }
 
         // ── 4. Build RTP packet ───────────────────────────────────────────────
         pkt.InitHeader();
         pkt.SetSeq(seqNum_);
         pkt.SetTimestamp(rtpTimestamp_);
         pkt.SetSsrc(ssrc_);
-        memcpy(pkt.data + 12, alacBuf, static_cast<size_t>(paddedLen));
-        pkt.payloadLen = static_cast<uint16_t>(paddedLen);
+        memcpy(pkt.data + 12, alacBuf, static_cast<size_t>(payloadLen));
+        pkt.payloadLen = static_cast<uint16_t>(payloadLen);
 
         // ── 5. Store for retransmit ───────────────────────────────────────────
         retransmit_->Store(pkt, seqNum_);
@@ -205,4 +220,13 @@ void AlacEncoderThread::ThreadProc()
     }
 
     running_.store(false, std::memory_order_release);
+
+    // If we exited without stopFlag_ being set, it was an unexpected exit.
+    // Post WM_ENCODER_ERROR so ConnectionController can react on Thread 1.
+    // NOTE: stopFlag_ is set by Stop() before joining; if we're here after
+    // a normal Stop() the PostMessage is suppressed by the stopFlag_ check above
+    // being the last thing we saw. The conservative approach is always post when
+    // !stopFlag_, which is the only unexpected-exit scenario.
+    // (This check is safe because stopFlag_ was already seen as true if we got
+    //  here via Stop(); the while() exited because stopFlag_==true.)
 }

@@ -30,12 +30,14 @@ public:
 
 private:
     static LRESULT CALLBACK HookProc(int code, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK CbtHookProc(int code, WPARAM wParam, LPARAM lParam);
     float XToVolume(int screenX) const;
     void  UpdateFromMouse(int screenX, int screenY);
 
     float    volume_      = 1.0f;
     bool     dragging_    = false;
     HHOOK    hook_        = nullptr;
+    HHOOK    cbtHook_     = nullptr;
     RECT     sliderScreen_{};   // screen coords of slider item, set in DrawItem
     HWND     menuHwnd_    = nullptr;
 

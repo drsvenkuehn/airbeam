@@ -2,15 +2,15 @@
 #include <cstdint>
 #include <memory>
 
-struct SRC_STATE_tag;  // forward declare libsamplerate state
+struct SpeexResamplerState_;
 
-/// Wraps libsamplerate for audio format conversion.
-/// If the capture format is already 44100 Hz stereo S16LE, this is a passthrough.
-/// Allocated on Thread 1 before the streaming loop; Process() is allocation-free.
+/// Wraps speexdsp rational polyphase resampler for audio format conversion.
+/// If the capture format is already 44100 Hz, this is a passthrough.
+/// Allocated before the streaming loop; Process() is allocation-free.
 class Resampler {
 public:
-    /// If srcRate == 44100 && srcChannels == 2, no resampler is created (passthrough).
-    /// Otherwise initializes libsamplerate SRC_SINC_BEST_QUALITY.
+    /// If srcRate == 44100, no resampler is created (passthrough).
+    /// Otherwise initializes speexdsp with QUALITY_DEFAULT.
     Resampler(uint32_t srcRate, uint32_t srcChannels, uint32_t dstRate = 44100);
     ~Resampler();
 
@@ -20,20 +20,21 @@ public:
     bool IsPassthrough() const { return passthrough_; }
 
     /// Converts `inFrames` input audio frames to int16_t stereo 44100 Hz output.
-    /// Returns number of output frames written to `out`.
+    /// Returns a pointer to the internal int16 output buffer; caller must not free it.
+    /// outFrames is set to the number of output frames produced.
     /// `in` is float32 interleaved (srcChannels channels).
-    /// `out` is int16_t interleaved stereo (2 channels).
-    int Process(const float* in, int16_t* out, int inFrames);
+    const int16_t* Process(const float* in, int inFrames, int& outFrames) noexcept;
 
 private:
-    SRC_STATE_tag* srcState_    = nullptr;
-    uint32_t       srcRate_     = 44100;
-    uint32_t       srcChannels_ = 2;
-    double         ratio_       = 1.0;
-    bool           passthrough_ = true;
-    // Pre-allocated float output buffer for SRC output (avoids per-call alloc)
-    // Max output frames: ~2000 (for 352 input frames at max 6x upsampling)
-    float          floatOutBuf_[4096 * 2] = {}; // 4096 frames * 2 channels
-    // Pre-allocated buffer for mono→stereo upmix before resampling
-    float          monoUpmixBuf_[4096 * 2] = {};
+    SpeexResamplerState_* spxState_    = nullptr;
+    uint32_t              srcRate_     = 44100;
+    uint32_t              srcChannels_ = 2;
+    bool                  passthrough_ = true;
+
+    // Pre-allocated int16 stereo input buffer (for float→int16 conversion before resampling)
+    int16_t               int16InBuf_[4096 * 2]  = {};
+    // Pre-allocated int16 stereo output buffer (returned by Process())
+    int16_t               int16OutBuf_[4096 * 2] = {};
+    // Pre-allocated passthrough int16 buffer (for passthrough float→int16)
+    int16_t               passBuf_[4096 * 2]     = {};
 };
